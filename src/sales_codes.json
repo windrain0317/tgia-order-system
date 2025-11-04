@@ -1,0 +1,23 @@
+[
+  {
+    "code": "S001",
+    "name": "施秉宏",
+    "department": "",
+    "email": "ph.shih@tgiabio.com",
+    "phone": "03-5783693 #101"
+  },
+  {
+    "code": "S002",
+    "name": "黃懷慧",
+    "department": "業務部",
+    "email": "hh.huang@tgiabio.com",
+    "phone": "03-5783693 #102"
+  },
+  {
+    "code": "S003",
+    "name": "梁詩萍",
+    "department": "業務部",
+    "email": "sp.liang@tgiabio.com",
+    "phone": "03-5783693 #103"
+  }
+]
