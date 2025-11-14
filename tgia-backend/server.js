@@ -1,4 +1,4 @@
-const express = require('express');
+ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const fs = require('fs');
@@ -7,12 +7,23 @@ const os = require('os');
 const ExcelJS = require('exceljs');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+
+// ✅ CORS 配置（允許 Render 前端）
+app.use(cors({
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'https://tgia-order.onrender.com/'  // 前端 URL
+  ],
+  credentials: true
+}));
+
 app.use(bodyParser.json({ limit: '50mb' }));
 
-const ordersDir = path.join(os.homedir(), 'Desktop', 'TGIA_Orders');
+app.use(bodyParser.json({ limit: '50mb' }));
+
+const ordersDir = path.join(__dirname, 'orders');  // 使用當前目錄
 const templatesDir = path.join(__dirname, 'templates');
 
 if (!fs.existsSync(ordersDir)) {
