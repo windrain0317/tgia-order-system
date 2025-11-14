@@ -4,219 +4,27 @@ import productLineData from './product_line.json'; // 直接 import
 import units   from './units.json'; // 直接 import
 import salesCodes from './sales_codes.json';
 import customerCodes from './customer_codes.json';
-// ========== 簽名板組件 ==========
-const SignaturePad = ({ onSave, onCancel, title = "請簽名" }) => {
-  const canvasRef = useRef(null);
-  const fileInputRef = useRef(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [isEmpty, setIsEmpty] = useState(true);
-  const [context, setContext] = useState(null);
-  const [uploadMode, setUploadMode] = useState('draw');
+import commonPackages from './common_packages.json';  
 
-  React.useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * window.devicePixelRatio;
-    canvas.height = rect.height * window.devicePixelRatio;
-    
-    const ctx = canvas.getContext('2d');
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    setContext(ctx);
-    
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }, []);
+const serviceOptionsByCategory = productLineData;
+// 🆕 加入防禦性檢查
 
-  const getCoordinates = (e) => {
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
-    };
-  };
+const safeCommonPackages = (() => {
+  if (!commonPackages) {
+    console.warn('commonPackages 未載入，使用空陣列');
+    return [];
+  }
+  if (!Array.isArray(commonPackages)) {
+    console.warn('commonPackages 不是陣列，使用空陣列');
+    return [];
+  }
+  return commonPackages;
+})();
 
-  const startDrawing = (e) => {
-    e.preventDefault();
-    setIsDrawing(true);
-    setIsEmpty(false);
-    const { x, y } = getCoordinates(e);
-    context.beginPath();
-    context.moveTo(x, y);
-  };
 
-  const draw = (e) => {
-    e.preventDefault();
-    if (!isDrawing) return;
-    const { x, y } = getCoordinates(e);
-    context.lineTo(x, y);
-    context.stroke();
-  };
-
-  const stopDrawing = (e) => {
-    e.preventDefault();
-    setIsDrawing(false);
-    context.closePath();
-  };
-
-  const clearSignature = () => {
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    context.fillStyle = '#FFFFFF';
-    context.fillRect(0, 0, rect.width, rect.height);
-    setIsEmpty(true);
-  };
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = canvasRef.current;
-          const rect = canvas.getBoundingClientRect();
-          context.fillStyle = '#FFFFFF';
-          context.fillRect(0, 0, rect.width, rect.height);
-          
-          const scale = Math.min(rect.width / img.width, rect.height / img.height);
-          const x = (rect.width - img.width * scale) / 2;
-          const y = (rect.height - img.height * scale) / 2;
-          
-          context.drawImage(img, x, y, img.width * scale, img.height * scale);
-          setIsEmpty(false);
-        };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const saveSignature = () => {
-    if (isEmpty) {
-      alert('請先簽名或上傳圖片');
-      return;
-    }
-    const canvas = canvasRef.current;
-    const signatureData = canvas.toDataURL('image/png');
-    onSave(signatureData);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full">
-        <div className="border-b px-6 py-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
-          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 transition">
-            <X size={24} />
-          </button>
-        </div>
-        
-        <div className="p-6">
-          <div className="flex gap-2 mb-4">
-            <button
-              onClick={() => setUploadMode('draw')}
-              className={`flex-1 py-2 px-4 rounded-lg transition ${
-                uploadMode === 'draw' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <Edit3 size={16} className="inline mr-2" />
-              手寫簽名
-            </button>
-            <button
-              onClick={() => setUploadMode('upload')}
-              className={`flex-1 py-2 px-4 rounded-lg transition ${
-                uploadMode === 'upload' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <Upload size={16} className="inline mr-2" />
-              上傳圖片
-            </button>
-          </div>
-
-          <div className="border-2 border-dashed border-gray-300 rounded-lg bg-white overflow-hidden">
-            <canvas
-              ref={canvasRef}
-              className="w-full touch-none cursor-crosshair"
-              style={{ height: '300px' }}
-              onMouseDown={uploadMode === 'draw' ? startDrawing : undefined}
-              onMouseMove={uploadMode === 'draw' ? draw : undefined}
-              onMouseUp={uploadMode === 'draw' ? stopDrawing : undefined}
-              onMouseLeave={uploadMode === 'draw' ? stopDrawing : undefined}
-              onTouchStart={uploadMode === 'draw' ? startDrawing : undefined}
-              onTouchMove={uploadMode === 'draw' ? draw : undefined}
-              onTouchEnd={uploadMode === 'draw' ? stopDrawing : undefined}
-            />
-          </div>
-          
-          {uploadMode === 'draw' ? (
-            <p className="text-sm text-gray-500 mt-2 text-center">
-              💡 提示：使用滑鼠、觸控筆或手指在上方區域簽名
-            </p>
-          ) : (
-            <div className="mt-4">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full py-3 border-2 border-dashed border-blue-300 rounded-lg hover:bg-blue-50 transition text-blue-600 font-medium"
-              >
-                <Upload size={20} className="inline mr-2" />
-                點擊選擇圖片檔案
-              </button>
-              <p className="text-sm text-gray-500 mt-2 text-center">
-                支援 JPG、PNG 等圖片格式
-              </p>
-            </div>
-          )}
-        </div>
-        
-        <div className="border-t px-6 py-4 flex gap-3 justify-end">
-          <button
-            onClick={clearSignature}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition flex items-center gap-2"
-          >
-            <RotateCcw size={18} />
-            清除
-          </button>
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-          >
-            取消
-          </button>
-          <button
-            onClick={saveSignature}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
-          >
-            <Check size={18} />
-            確認簽名
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ========== 步驟進度條組件 ==========
-
+// ========== 小功能 ==========
+// Email 驗證
 const validateEmail = (emailString) => {
   if (!emailString || !emailString.trim()) return false;
   
@@ -228,62 +36,122 @@ const validateEmail = (emailString) => {
   
   return emails.length > 0 && emails.every(email => emailRegex.test(email));
 };
-
-const StepIndicator = ({ currentStep, steps }) => {
+// 步驟指示器 => 網頁上方那排
+const StepIndicator = ({ currentStep, steps, isLocked }) => {
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between">
-        {steps.map((step, index) => (
-          <React.Fragment key={index}>
-            <div className="flex flex-col items-center flex-1">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition ${
-                index + 1 < currentStep 
-                  ? 'bg-green-500 text-white' 
-                  : index + 1 === currentStep 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-200 text-gray-500'
-              }`}>
-                {index + 1 < currentStep ? <Check size={20} /> : index + 1}
+        {steps.map((step, index) => {
+          // 🔹 當表單鎖定時，全部變藍（代表完成）
+          const isCompleted = index < currentStep;
+          const isCurrent = index === currentStep;
+          const lockedClass = isLocked ? 'bg-blue-500 text-white' : '';
+
+          return (
+            <React.Fragment key={index}>
+              <div className="flex flex-col items-center flex-1">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition
+                    ${
+                      isLocked
+                        ? lockedClass
+                        : isCompleted
+                        ? 'bg-green-500 text-white'
+                        : isCurrent
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-500'
+                    }`}
+                >
+                  {isLocked
+                    ? <Check size={20} /> // 鎖定時全部顯示勾勾
+                    : isCompleted
+                    ? <Check size={20} />
+                    : index + 1}
+                </div>
+                <p
+                  className={`text-xs mt-2 text-center ${
+                    isLocked
+                      ? 'text-blue-600 font-semibold'
+                      : isCurrent
+                      ? 'text-blue-600 font-semibold'
+                      : 'text-gray-500'
+                  }`}
+                >
+                  {step}
+                </p>
               </div>
-              <p className={`text-xs mt-2 text-center ${
-                index + 1 === currentStep ? 'text-blue-600 font-semibold' : 'text-gray-500'
-              }`}>
-                {step}
-              </p>
-            </div>
-            {index < steps.length - 1 && (
-              <div className={`h-1 flex-1 mx-2 transition ${
-                index + 1 < currentStep ? 'bg-green-500' : 'bg-gray-200'
-              }`} />
-            )}
-          </React.Fragment>
-        ))}
+
+              {index < steps.length - 1 && (
+                <div
+                  className={`h-1 flex-1 mx-2 transition
+                    ${
+                      isLocked
+                        ? 'bg-blue-500'
+                        : index < currentStep
+                        ? 'bg-green-500'
+                        : 'bg-gray-200'
+                    }`}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
       </div>
     </div>
   );
 };
 
+
 // ========== 主表單組件 ==========
 const TGIAOrderForm = () => {
+  const canAddServiceForCategory = (category) => category === '分析服務 (A)';
   const [currentStep, setCurrentStep] = useState(0);
   const [showOrgSuggestions, setShowOrgSuggestions] = useState(false);
   const [filteredOrgs, setFilteredOrgs] = useState([]);
   const [exportReady, setExportReady] = useState(false);
-  // 🆕 Sample_Name 清理函數：只保留英文、數字、_、,、-
+  const [isLocked, setIsLocked] = useState(false);
+  
+  // 表單小工具
+  // Sample_Name 清理函數：只保留英文、數字、_、,、-
   const sanitizeSampleName = (name) => {
     if (!name) return '';
     return String(name).replace(/[^a-zA-Z0-9_,-]/g, '');
   };
-
+  // 加入AP系列判定 => 鎖定並判定定序
+  const getAPPackageConfig = () => {
+    if (!formData.selectedServiceCategories.includes('套組產品 (AP)')) {
+      return null;
+    }
+    
+    const apItem = formData.serviceItems.find(item => item.category === '套組產品 (AP)');
+    if (apItem && apItem.services[0].service) {
+      const apOptions = serviceOptionsByCategory['套組產品 (AP)'] || [];
+      const config = apOptions.find(opt => opt.value === apItem.services[0].service);
+      if (config?.binding?.seqAmountGb) {
+        return {
+          ...config,
+          quantity: parseInt(apItem.services[0].quantity) || 1,
+          seqPerSample: config.binding.seqAmountGb
+        };
+      }
+    }
+    return null;
+  };
   const [searchableDropdown, setSearchableDropdown] = useState({
     isOpen: false,
     searchTerm: '',
     activeIndex: null,
-    targetKey: '' // 用來識別是哪個下拉選單
+    targetKey: '' 
   });  
-  
+  // 在 useState 區域加入錯誤追蹤
+  const [fieldErrors, setFieldErrors] = useState({
+    sampleSheet: {}, // { rowIndex: { fieldName: errorMessage } }
+    librarySampleSheet: {},
+    libraryDetailSheet: {}
+  });  
+
+  // 拖放上傳 Excel 檔案功能
   const [isDragging, setIsDragging] = useState(false);
-  // 🆕 拖拉處理函數（放在 handleExcelUpload 前面）
   const handleDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -322,7 +190,8 @@ const TGIAOrderForm = () => {
       handleExcelUpload(fakeEvent);
     }
   };  
-  const steps = ['基本驗證', '基本資訊', '委託內容', '送測樣品', '簽名確認', '預覽提交'];
+  // const steps = ['基本驗證', '基本資訊', '委託內容', '送測樣品', '簽名確認', '預覽提交'];
+  const steps = ['基本驗證', '基本資訊', '委託內容', '送測樣品', '預覽提交'];
   
   // const organizationOptions = [
   //   '國立陽明交通大學',
@@ -359,6 +228,14 @@ const TGIAOrderForm = () => {
     recipientEmail: '',
     isUrgent: false,  // 是否為急件，預設 false (正常件)
     sampleReturn: '不需要',  // 樣品返還，預設「不需要」    
+    selectedPackage: '',  // 🆕 選擇的常用組合 ID 
+    packageMultiplier: 1,  // 🆕 組合倍數
+    packageQuantity: 1,
+    // 基本資料...
+
+    selectedPackage: '',   // 🔹 只是輔助選取（非下單品）
+    // Step2 預覽用
+    serviceItems: [],      // 🔍 只做展示，不寫入 paylo    
     selectedServiceCategories: [],
     serviceItems: [{
       category: '請選擇服務類別',
@@ -424,10 +301,15 @@ const TGIAOrderForm = () => {
     notes: '',
     signature: null
   });
+  const selectedPackage = formData?.selectedPackage ?? '';
+
+
+  
 // // 🆕 新增：客戶代碼驗證狀態
 // const [customerCodeInput, setCustomerCodeInput] = useState('');
 // const [customerCodeStatus, setCustomerCodeStatus] = useState('idle'); // 'idle' | 'checking' | 'valid' | 'invalid'
 // const [customerInfo, setCustomerInfo] = useState(null);
+
 
 
   // 🆕 處理業務代碼選擇（保持不變）
@@ -503,15 +385,76 @@ const TGIAOrderForm = () => {
   // };
 
 
+  
   const [submitted, setSubmitted] = useState(false);
   const [message, setMessage] = useState('');
   const [orderId, setOrderId] = useState('');
-  const [showSignaturePad, setShowSignaturePad] = useState(false);
+  // const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [pasteMode, setPasteMode] = useState('sampleSheet');
   const [pasteData, setPasteData] = useState('');
   const excelUploadRef = useRef(null);
 
+// 🆕 調整組合倍數（在 STEP2 使用）
+// 🆕 調整組合倍數（排除不受影響的服務）
+const handlePackageMultiplierChange = (newMultiplier) => {
+  if (!formData.selectedPackage) return;
+  
+  const multiplier = Math.max(1, parseInt(newMultiplier) || 1);
+  
+  // 🆕 使用 safeCommonPackages
+  const selectedPkg = safeCommonPackages.find(pkg => pkg.id === formData.selectedPackage);
+  if (!selectedPkg) {
+    setMessage('❌ 找不到此組合配置');
+    return;
+  }
+  
+  // 更新所有服務的數量
+  const updatedServiceItems = formData.serviceItems.map(item => {
+    // 找出該類別在組合中的預設服務
+    const defaultServicesForCategory = (selectedPkg.defaultServices || []).filter(
+      svc => svc.category === item.category
+    );
+    
+    // 更新服務數量
+    const updatedServices = item.services.map(service => {
+      const defaultService = defaultServicesForCategory.find(
+        ds => ds.service === service.service
+      );
+      
+      if (defaultService) {
+        // 檢查是否排除倍數影響
+        if (defaultService.excludeFromMultiplier) {
+          return {
+            ...service,
+            quantity: String(parseInt(defaultService.defaultQuantity) || 1)
+          };
+        } else {
+          return {
+            ...service,
+            quantity: String((parseInt(defaultService.defaultQuantity) || 1) * multiplier)
+          };
+        }
+      } else {
+        return service;
+      }
+    });
+    
+    return {
+      ...item,
+      services: updatedServices
+    };
+  });
+  
+  setFormData(prev => ({
+    ...prev,
+    packageMultiplier: multiplier,
+    serviceItems: updatedServiceItems
+  }));
+  
+  setMessage(`✅ 已調整組合倍數為 ${multiplier} 倍`);
+  setTimeout(() => setMessage(''), 2000);
+};
 
   // 🆕 加入離開頁面警示
   React.useEffect(() => {
@@ -566,32 +509,73 @@ const TGIAOrderForm = () => {
   };
 
 // 2️⃣ 加入計算函數
+// 2️⃣ 加入計算函數
+// 2️⃣ 加入計算函數（支援 AP 套組和一般服務）
 const calculateTotalSequencing = () => {
   let total = 0;
+  
+  // 🆕 加入防禦性檢查
+  if (!formData.serviceItems || !Array.isArray(formData.serviceItems)) {
+    return 0;
+  }
+  
   formData.serviceItems.forEach(item => {
+    // === 情況1：一般定序服務 ===
     if (item.category === '定序服務 (S)') {
+      if (!item.services || !Array.isArray(item.services)) {
+        return;
+      }
+      
       item.services.forEach(service => {
         const gbPerUnit = sequencingDataMap[service.service] || 0;
         const quantity = parseInt(service.quantity) || 0;
         total += gbPerUnit * quantity;
       });
     }
+    
+    // === 情況2：AP 套組產品 ===
+    if (item.category === '套組產品 (AP)') {
+      if (!item.services || !Array.isArray(item.services)) {
+        return;
+      }
+      
+      item.services.forEach(service => {
+        if (!service.service) return;
+        
+        // 從 serviceOptionsByCategory 找到該 AP 產品的配置
+        const apOptions = serviceOptionsByCategory['套組產品 (AP)'] || [];
+        const apConfig = apOptions.find(opt => opt.value === service.service);
+        
+        if (apConfig?.binding?.seqAmountGb) {
+          const quantity = parseInt(service.quantity) || 0;
+          total += apConfig.binding.seqAmountGb * quantity;
+        }
+      });
+    }
   });
+  
   return total;
 };
-
 
 const calculateExpectedSequencing = () => {
   let total = 0;
   
   if (formData.sampleType === 'Library') {
-    // Library: 計算 sampleSheet 的預期定序量
+    // 🆕 加入檢查
+    if (!formData.libraryInfo?.sampleSheet || !Array.isArray(formData.libraryInfo.sampleSheet)) {
+      return 0;
+    }
+    
     formData.libraryInfo.sampleSheet.forEach(row => {
       const expectedSeq = parseFloat(row.expectedSeq) || 0;
       total += expectedSeq;
     });
   } else if (formData.sampleType !== '無送樣') {
-    // Sample (DNA/RNA/Cell/Blood): 計算 sampleInfo.sampleSheet 的預期定序量
+    // 🆕 加入檢查
+    if (!formData.sampleInfo?.sampleSheet || !Array.isArray(formData.sampleInfo.sampleSheet)) {
+      return 0;
+    }
+    
     formData.sampleInfo.sampleSheet.forEach(row => {
       const expectedSeq = parseFloat(row.expectedSeq) || 0;
       total += expectedSeq;
@@ -600,6 +584,7 @@ const calculateExpectedSequencing = () => {
   
   return total;
 };
+
 // 🆕 1️⃣ 加入計算樣本數量的函數（放在 calculateExpectedSequencing 下方）
 const calculateSampleCount = () => {
   let count = 0;
@@ -635,160 +620,85 @@ const autoFillSampleCount = () => {
     '分析服務 (A)',
     '套組產品 (AP)'
   ];
-const serviceOptionsByCategory = productLineData;
 
-// const serviceOptionsByCategory = {
-//   '定序服務 (S)': [
-//     { 
-//       value: 'S-0000 無定序', 
-//       description: '不進行定序服務' 
-//     },
-//     { 
-//       value: 'S-G000 二代定序 - 定序量購買', 
-//       description: '依實際需求購買定序數據量，彈性計價' 
-//     },
-//     { 
-//       value: 'S-LN01 二代定序 - NoveSeq 6000, S4 包Lane 定序', 
-//       description: 'NovaSeq 6000 平台，S4 flowcell，約 2-2.5B reads per lane，適合中大型專案' 
-//     },
-//     { 
-//       value: 'S-LN02 二代定序 - NovaSeq X Plus, 10B 包Lane 定序', 
-//       description: 'NovaSeq X Plus 平台，10B reads per lane，高通量定序' 
-//     },
-//     { 
-//       value: 'S-LN03 二代定序 - NovaSeq X Plus, 25B 包Lane 定序', 
-//       description: 'NovaSeq X Plus 平台，25B reads per lane，超高通量定序' 
-//     },
-//     { 
-//       value: 'S-FC01 二代定序 - NoveSeq 6000, SP 包Run 定序', 
-//       description: 'NovaSeq 6000 平台，SP flowcell 整片定序，約 800M-1.3B reads' 
-//     },
-//     { 
-//       value: 'S-FC02 二代定序 - NovaSeq X Plus, 1.5B (100cycle) 包 Run 定序', 
-//       description: 'NovaSeq X Plus 平台，1.5B reads，100 cycle，適合小型專案' 
-//     },
-//     { 
-//       value: 'S-OS01 三代定序 - Pacbio, Sequel IIe 包片定序', 
-//       description: 'PacBio Sequel IIe 平台，HiFi 長讀長定序，適合基因體組裝' 
-//     },
-//     { 
-//       value: 'S-OS02 三代定序 - Pacbio, Revio 包片定序', 
-//       description: 'PacBio Revio 平台，最新一代 HiFi 定序，高通量長讀長' 
-//     },
-//     { 
-//       value: 'S-OS03 三代定序 - Pacbio, 16S rDNA定序', 
-//       description: 'PacBio 16S rRNA 全長定序，微生物群落分析' 
-//     }
-//   ],
-//   'QC (Q)': [
-//     { value: 'Q-QC01 DNA QC', description: 'Qubit 濃度測定 + Nanodrop 純度檢測 + 膠體電泳完整性分析' },
-//     { value: 'Q-QC02 DNA QC(PacBio)', description: 'PacBio 專用 DNA QC，含高分子量 DNA 完整性評估' },
-//     { value: 'Q-QC03 RNA QC', description: 'Qubit 濃度測定 + Bioanalyzer RIN 值檢測' },
-//     { value: 'Q-QC04 RNA QC(PacBio)', description: 'PacBio 專用 RNA QC，含 RNA 完整性評估' },
-//     { value: 'Q-QC05 Library QC', description: 'Library 濃度測定 + Bioanalyzer 片段大小分析' },
-//     { value: 'Q-QC06 Library QC(PacBio)', description: 'PacBio Library QC，含 SMRTbell 完整性檢測' }
-//   ],
-//   '萃取/QC (EQ)': [
-//     { value: 'Q-ED01 DNA萃取+QC - 血液、Buffy coat DNA萃取', description: '從全血或 Buffy coat 萃取基因體 DNA，含 QC' },
-//     { value: 'Q-ED02 DNA萃取+QC - 細胞 DNA萃取', description: '從培養細胞萃取基因體 DNA，含 QC' },
-//     { value: 'Q-ED03 DNA萃取+QC - 組織 DNA萃取', description: '從新鮮或冷凍組織萃取基因體 DNA，含 QC' },
-//     { value: 'Q-ED04 DNA萃取+QC - 石蠟包埋 (FFPE) DNA萃取', description: '從 FFPE 組織萃取 DNA，含 QC' },
-//     { value: 'Q-ED05 DNA萃取+QC - 血清(漿) cfDNA萃取', description: '從血漿或血清萃取游離 DNA (cfDNA)，含 QC' },
-//     { value: 'Q-ER01A RNA萃取+QC - 血液 RNA萃取 (Tempus 採血管)', description: '從 Tempus 採血管萃取 RNA，含 QC' },
-//     { value: 'Q-ER01B RNA萃取+QC - 血液 RNA萃取 (PAXgene 採血管)', description: '從 PAXgene 採血管萃取 RNA，含 QC' },
-//     { value: 'Q-ER02 RNA萃取+QC - 細胞 RNA萃取', description: '從培養細胞萃取 total RNA，含 QC' },
-//     { value: 'Q-ER03 RNA萃取+QC - 組織 RNA萃取', description: '從新鮮或冷凍組織萃取 total RNA，含 QC' },
-//     { value: 'Q-ER04 RNA萃取+QC - 石蠟包埋 (FFPE) RNA萃取', description: '從 FFPE 組織萃取 RNA，含 QC' },
-//     { value: 'Q-ER05 RNA萃取+QC - 血清(漿) cfRNA萃取', description: '從血漿或血清萃取游離 RNA (cfRNA)，含 QC' }
-//   ],
-//   '建庫服務 (L)': [
-//     { value: 'L-TA01 TAF 認證 - WGS, Illumina DNA PCR-Free Prep 建庫 (人類 DNA)', description: 'TAF 認證全基因體定序建庫，PCR-free 流程，人類 DNA 專用' },
-//     { value: 'L-TA02 TAF 認證 - WES, Illumina DNA Prep with Enrichment, IDT v2 probe 建庫 (人類 DNA)', description: 'TAF 認證外顯子定序建庫，使用 IDT v2 probe，人類 DNA 專用' },
-//     { value: 'L-WE01 WES - Roche, KAPA HyperPlus V1 建庫', description: 'KAPA HyperPlus V1 kit，適合 10ng-1μg DNA，需搭配 capture probe' },
-//     { value: 'L-WE02 WES - Roche, KAPA HyperPlus V1 + mit 建庫', description: 'KAPA HyperPlus V1 + 粒線體富集，適合低覆蓋度需求' },
-//     { value: 'L-WE03 WES - Roche, KAPA HyperPlus V2 建庫', description: 'KAPA HyperPlus V2 kit，適合 10ng-1μg DNA' },
-//     { value: 'L-WE04 WES - Roche, KAPA EvoPlus V2 建庫', description: 'KAPA EvoPlus V2 kit，酶促建庫，適合降解 DNA' },
-//     { value: 'L-WE05 WES - Roche, KAPA EvoPlus V2 + mit 建庫', description: 'KAPA EvoPlus V2 + 粒線體富集' },
-//     { value: 'L-WE06 WES - QIAGEN, QIAseq Human Exome Kit 建庫', description: 'QIAGEN 外顯子建庫套組，含 capture probe' },
-//     { value: 'L-WG01 WGS - Illumina, Illumina DNA PCR-Free Prep 建庫', description: 'PCR-free 建庫，適合高品質 DNA，減少 GC bias' },
-//     { value: 'L-WG02 WMS - Illumina, Illumina DNA Prep 建庫', description: 'Tagmentation 快速建庫，適合一般基因體定序' },
-//     { value: 'L-WG03 WGS - Roche, KAPA EvoPrep 建庫', description: 'KAPA EvoPrep 酶促建庫，適合降解或 FFPE DNA' },
-//     { value: 'L-WG04 WGBS - IDT, xGen Methyl-Seq Library Prep 建庫', description: '全基因體甲基化定序建庫，含 bisulfite 轉換' },
-//     { value: 'L-TS01 TSO500 - Illumina, TSO500 HT 建庫', description: 'TruSight Oncology 500 High-Throughput，腫瘤 523 基因 panel' },
-//     { value: 'L-TS02 內部使用 - Illumina, TSO500 HT plus Velsera', description: 'TSO500 + Velsera 分析平台（內部使用）' },
-//     { value: 'L-TS03 TSO500 - Illumina, TSO500 ctDNA v2 建庫', description: 'TSO500 ctDNA v2，循環腫瘤 DNA 檢測' },
-//     { value: 'L-TS04 內部使用 - Illumina, TSO500 ctDNA v2 plus Velsera', description: 'TSO500 ctDNA + Velsera（內部使用）' },
-//     { value: 'L-DN01 內部使用 - IDT, xGen ssDNA & Low-Input DNA Library Prep 建庫', description: '單股 DNA 或低量 DNA 建庫（內部使用）' },
-//     { value: 'L-RN01 RNAseq - Illumina, Illumina Stranded mRNA 建庫', description: 'polyA 富集 mRNA 定序，保留鏈方向資訊' },
-//     { value: 'L-RN02 RNAseq - Illumina, Illumina Stranded Total RNA Prep, Ligation with Ribo-Zero Plus 建庫', description: 'Total RNA 去除 rRNA，含非編碼 RNA' },
-//     { value: 'L-RN03 RNAseq - Illumina, Illumina RNA Prep with Enrichment 建庫', description: 'RNA 建庫含富集功能，可搭配 panel' },
-//     { value: 'L-RN04 RNAseq - Roche, KAPA mRNA HyperPrep 建庫', description: 'KAPA mRNA 建庫，polyA 富集' },
-//     { value: 'L-RN05 RNAseq - Roche, KAPA RNA HyperPrep Kits with RiboErase (HMR) 建庫', description: 'KAPA RNA 去除 rRNA (Human/Mouse/Rat)' },
-//     { value: 'L-RN06 RNAseq - Takara, SMART-Seq Stranded 建庫', description: 'SMART-Seq 全長轉錄本建庫，適合單細胞' },
-//     { value: 'L-RN07 RNAseq - Takara, SMART-Seq mRNA LP 建庫', description: 'SMART-Seq 低投入量 mRNA 建庫' },
-//     { value: 'L-RN08 RNAseq - QIAGEN, QIAseq miRNA Library Kit 建庫', description: 'miRNA 定序建庫，小片段 RNA' },
-//     { value: 'L-PB01 PacBio - Human WGS with Standard Analysis', description: 'PacBio 人類全基因體定序，含標準分析' },
-//     { value: 'L-PB02 PacBio - Human WGS with 5mC', description: 'PacBio 人類全基因體 + 5mC 甲基化檢測' },
-//     { value: 'L-PB03 PacBio - De Novo Assembly-HiFi Reads (unknown)', description: 'PacBio HiFi 從頭組裝，物種未知' },
-//     { value: 'L-PB04 PacBio - De Novo Assembly-HiFi Reads (unknown), with 5mC', description: 'PacBio HiFi 組裝 + 5mC 檢測' },
-//     { value: 'L-PB05 PacBio - De Novo Assembly-CCS Reads (Microbial), 20 plex', description: 'PacBio 微生物組裝，20 樣本混合' },
-//     { value: 'L-PB06 PacBio - PacBio CCS, Full Length 16S rRNA 8K Reads, 96 plex', description: 'PacBio 16S 全長定序，96 樣本混合' },
-//     { value: 'L-OS01 10x - GEM-X Universal 5\' Gene Expression v3, 4 samples', description: '10x Genomics 5\' 單細胞基因表現，4 樣本' },
-//     { value: 'L-OS02 10x - GEM-X Flex Gene Expression Mouse', description: '10x Flex 固定組織單細胞定序，小鼠' },
-//     { value: 'L-OS03 10x - GEM-X Flex Gene Expression Human', description: '10x Flex 固定組織單細胞定序，人類' },
-//     { value: 'L-OS04 10x - Visium HD, Mouse Transcriptome, 6.5 mm', description: '10x Visium HD 空間轉錄體，小鼠，6.5mm 捕獲區' },
-//     { value: 'L-OS05 10x - Visium HD, Human Transcriptome, 6.5 mm', description: '10x Visium HD 空間轉錄體，人類，6.5mm 捕獲區' }
-//   ],
-//   '分析服務 (A)': [
-//     { value: 'A101 1st - Non (不分析)', description: '不進行生資分析' },
-//     { value: 'A102 1st - Fastq', description: '產出 Fastq 原始檔案' },
-//     { value: 'A103 1st - BCL', description: '產出 BCL 原始檔案' },
-//     { value: 'A104 1st - UMI', description: 'UMI 去重複分析' },
-//     { value: 'A202 2nd - DRAGEN-Germline-XP', description: 'DRAGEN 加速運算平台，體細胞變異分析' },
-//     { value: 'A203 2nd - DRAGEN-Somatic-XP', description: 'DRAGEN 加速運算平台，體細胞突變分析' },
-//     { value: 'A204 2nd - RNAseq-Basic', description: 'RNA-Seq 基礎分析：比對、定量、QC' },
-//     { value: 'A205 2nd - RNAseq-Advanced', description: 'RNA-Seq 進階分析：差異表現、GO/KEGG' },
-//     { value: 'A206 2nd - TSO500-Tissue', description: 'TSO500 組織樣本分析報告' },
-//     { value: 'A207 2nd - TSO500-ctDNA', description: 'TSO500 ctDNA 樣本分析報告' },
-//     { value: 'A208 2nd - miRNA', description: 'miRNA 定序分析：比對、定量、目標基因預測' },
-//     { value: 'A209 2nd - ChIPseq', description: 'ChIP-Seq 分析：peak calling、motif 分析' },
-//     { value: 'A210 2nd - CellRanger', description: '10x Genomics Cell Ranger 標準分析' },
-//     { value: 'A211 2nd - SpaceRanger', description: '10x Visium Space Ranger 空間分析' },
-//     { value: 'A212 2nd - scRNAseq-Standard', description: '單細胞 RNA-Seq 標準分析' },
-//     { value: 'A213 2nd - CeleScope', description: 'CeleScope 單細胞分析平台' },
-//     { value: 'A214 2nd - PacBio-16S', description: 'PacBio 16S 微生物群落分析' },
-//     { value: 'A215 2nd - PacBio-HumanWGS', description: 'PacBio 人類全基因體分析' },
-//     { value: 'A216 2nd - Transcriptome-de-novo', description: '轉錄體從頭組裝分析' },
-//     { value: 'A217 2nd - ServiceHour', description: '客製化分析服務（以小時計費）' },
-//     { value: 'A218 2nd - DRAGEN-Germline-Server', description: 'DRAGEN Server 體細胞變異分析' },
-//     { value: 'A219 2nd - DRAGEN-Somatic-Server', description: 'DRAGEN Server 體細胞突變分析' },
-//     { value: 'A302 3rd - Geneyx-Report', description: 'Geneyx 變異解讀報告' },
-//     { value: 'A303 3rd - Geneyx-Report&Annotation-Germline', description: 'Geneyx 報告 + 體細胞變異註解' },
-//     { value: 'A304 3rd - Geneyx-Account', description: 'Geneyx 平台使用帳號' },
-//     { value: 'A305 3rd - Annotation-Germline', description: '體細胞變異註解' },
-//     { value: 'A306 3rd - Annotation-Germline&JointCalling', description: '體細胞變異註解 + Joint Calling' },
-//     { value: 'A307 3rd - Annotation-Somatic', description: '體細胞突變註解' },
-//     { value: 'A308 3rd - Annotation-Somatic-PCGR', description: '體細胞突變 PCGR 註解（癌症相關）' },
-//     { value: 'A309 3rd - Annotation-Somatic-PCGR-maftools', description: 'PCGR + maftools 進階癌症註解' },
-//     { value: 'A310 3rd - OGM-Geneyx-Report', description: 'OGM (光學基因體圖譜) Geneyx 報告' },
-//     { value: 'A311 3rd - OGM-Geneyx-Account', description: 'OGM Geneyx 平台使用帳號' },
-//     { value: 'A312 3rd - ICI-Report', description: 'ICI (免疫檢查點抑制劑) 療效預測報告' },
-//     { value: 'A313 3rd - ICI-Account', description: 'ICI 分析平台使用帳號' },
-//     { value: 'A314 3rd - MagicBison', description: 'MagicBison 整合分析平台' },
-//     { value: 'A315 3rd - SangerReport', description: 'Sanger 定序分析報告' },
-//     { value: 'A316 3rd - HLAtyping', description: 'HLA 分型分析' }
-//   ],
-//   '套組產品 (AP)': [
-//     { value: '台基安WGS包套1', description: 'WGS 基礎套組：萃取 + QC + 建庫 + 定序' },
-//     { value: '台基安WGS包套2', description: 'WGS 進階套組：包套1 + 基礎生資分析' },
-//     { value: '台基安WGS包套3', description: 'WGS 完整套組：包套2 + 變異註解報告' },
-//     { value: '台基安WES包套1', description: 'WES 基礎套組：萃取 + QC + 建庫 + 定序' },
-//     { value: '台基安WES包套2', description: 'WES 進階套組：包套1 + 基礎生資分析' },
-//     { value: '台基安WES包套3', description: 'WES 完整套組：包套2 + 變異註解報告' },
-//     { value: 'RNAseq-Basic包套', description: 'RNA-Seq 基礎套組：萃取 + QC + 建庫 + 定序 + 基礎分析' },
-//     { value: 'RNAseq-Advanced包套', description: 'RNA-Seq 進階套組：基礎包套 + 差異表現分析 + 功能註解' }
-//   ]
-// };
+
+
+
+
+// 🆕 處理常用組合選擇
+// 處理常用組合選擇
+const handlePackageSelect = (packageId) => {
+  if (!packageId) {
+    setFormData(prev => ({ 
+      ...prev, 
+      selectedPackage: ''
+    }));
+    return;
+  }
+  
+  // 🆕 使用 safeCommonPackages
+  const selectedPkg = safeCommonPackages.find(pkg => pkg.id === packageId);
+  if (!selectedPkg) {
+    setMessage('❌ 找不到此組合');
+    return;
+  }
+  
+  // 自動勾選相關的服務類別
+  setFormData(prev => ({
+    ...prev,
+    selectedPackage: packageId,
+    selectedServiceCategories: selectedPkg.categories || [],
+    sampleType: selectedPkg.recommendedSampleType || prev.sampleType
+  }));
+  
+  setMessage(`✅ 已選擇組合：${selectedPkg.name}，請進入下一步填寫品項數量`);
+  setTimeout(() => setMessage(''), 3000);
+};
+
+
+// 🆕 一鍵清除所有服務類別
+const handleClearAllCategories = () => {
+  if (formData.selectedServiceCategories.length === 0) {
+    setMessage('目前沒有選擇任何服務類別');
+    setTimeout(() => setMessage(''), 2000);
+    return;
+  }
+  
+  if (window.confirm('確定要清除所有已選擇的服務類別嗎？')) {
+    setFormData(prev => ({
+      ...prev,
+      selectedServiceCategories: [],
+      serviceItems: [{
+        category: '請選擇服務類別',
+        services: [{ service: '', quantity: '' }],
+        libraryType: '無',
+        seqSpec: ''
+      }]
+    }));
+    setMessage('✅ 已清除所有服務類別');
+    setTimeout(() => setMessage(''), 2000);
+  }
+};
+
+
+// 🆕 清除常用組合選擇
+const handleClearPackage = () => {
+  if (window.confirm('清除常用組合將會重置所有服務類別選擇，確定要繼續嗎？')) {
+    setFormData(prev => ({
+      ...prev,
+      selectedPackage: '',
+      selectedServiceCategories: [],
+      serviceItems: [{
+        category: '請選擇服務類別',
+        services: [{ service: '', quantity: '' }],
+        libraryType: '無',
+        seqSpec: ''
+      }]
+    }));
+    setMessage('已清除常用組合選擇');
+    setTimeout(() => setMessage(''), 2000);
+  }
+};
 
 
   // 處理服務類別勾選
@@ -806,7 +716,7 @@ const handleServiceCategoryToggle = (categoryValue) => {
         if (newSelected.includes('萃取/QC (EQ)')) {
           setMessage('❌ 已勾選「萃取/QC」，無法取消此項目');
           setTimeout(() => setMessage(''), 2000);
-          return prev; // 不改變狀態
+          return prev;
         }
       }
       
@@ -815,7 +725,7 @@ const handleServiceCategoryToggle = (categoryValue) => {
         if (newSelected.includes('建庫服務 (L)')) {
           setMessage('❌ 已勾選「建庫服務」，無法取消定序服務');
           setTimeout(() => setMessage(''), 2000);
-          return prev; // 不改變狀態
+          return prev;
         }
       }
       
@@ -824,31 +734,55 @@ const handleServiceCategoryToggle = (categoryValue) => {
       
     } else {
       // === 勾選 ===
-      newSelected.push(categoryValue);
       
-      // 聯動邏輯 1：勾選「萃取/QC (EQ)」→ 自動勾選「建庫服務 (L)」和「定序服務 (S)」
-      if (categoryValue === '萃取/QC (EQ)') {
-        const autoChecked = [];
-        if (!newSelected.includes('建庫服務 (L)')) {
-          newSelected.push('建庫服務 (L)');
-          autoChecked.push('建庫服務');
-        }
-        if (!newSelected.includes('定序服務 (S)')) {
-          newSelected.push('定序服務 (S)');
-          autoChecked.push('定序服務');
-        }
-        if (autoChecked.length > 0) {
-          setMessage(`✓ 已自動勾選：${autoChecked.join('、')}`);
-          setTimeout(() => setMessage(''), 2000);
-        }
+      // 🆕 AP 互斥邏輯：選擇 AP 時清除其他所有類別
+      if (categoryValue === '套組產品 (AP)') {
+        newSelected = ['套組產品 (AP)'];
+        setMessage('✓ 已選擇套組產品，其他服務類別已自動清除');
+        setTimeout(() => setMessage(''), 2500);
+        // 🆕 清空常用組合選擇
+        return {
+          ...prev,
+          selectedServiceCategories: newSelected,
+          selectedPackage: '',  // 🔥 清空常用組合
+          packageMultiplier: 1   // 重置倍數
+        };        
+      } 
+      // 🆕 選擇其他類別時，如果已有 AP，則清除 AP
+      else if (newSelected.includes('套組產品 (AP)')) {
+        newSelected = newSelected.filter(c => c !== '套組產品 (AP)');
+        newSelected.push(categoryValue);
+        setMessage('✓ 已取消套組產品，改為自選服務');
+        setTimeout(() => setMessage(''), 2500);
       }
-      
-      // 聯動邏輯 2：勾選「建庫服務 (L)」→ 自動勾選「定序服務 (S)」
-      if (categoryValue === '建庫服務 (L)') {
-        if (!newSelected.includes('定序服務 (S)')) {
-          newSelected.push('定序服務 (S)');
-          setMessage('✓ 已自動勾選：定序服務');
-          setTimeout(() => setMessage(''), 2000);
+      // 原有的聯動邏輯
+      else {
+        newSelected.push(categoryValue);
+        
+        // 聯動邏輯 1：勾選「萃取/QC (EQ)」→ 自動勾選「建庫服務 (L)」和「定序服務 (S)」
+        if (categoryValue === '萃取/QC (EQ)') {
+          const autoChecked = [];
+          if (!newSelected.includes('建庫服務 (L)')) {
+            newSelected.push('建庫服務 (L)');
+            autoChecked.push('建庫服務');
+          }
+          if (!newSelected.includes('定序服務 (S)')) {
+            newSelected.push('定序服務 (S)');
+            autoChecked.push('定序服務');
+          }
+          if (autoChecked.length > 0) {
+            setMessage(`✓ 已自動勾選：${autoChecked.join('、')}`);
+            setTimeout(() => setMessage(''), 2000);
+          }
+        }
+        
+        // 聯動邏輯 2：勾選「建庫服務 (L)」→ 自動勾選「定序服務 (S)」
+        if (categoryValue === '建庫服務 (L)') {
+          if (!newSelected.includes('定序服務 (S)')) {
+            newSelected.push('定序服務 (S)');
+            setMessage('✓ 已自動勾選：定序服務');
+            setTimeout(() => setMessage(''), 2000);
+          }
         }
       }
     }
@@ -859,6 +793,12 @@ const handleServiceCategoryToggle = (categoryValue) => {
 
   // 驗證當前步驟必填欄位
   const validateStep = (step) => {
+    // 清除之前的錯誤
+    setFieldErrors({
+      sampleSheet: {},
+      librarySampleSheet: {},
+      libraryDetailSheet: {}
+    });    
     switch(step) {
     case 0: // Step 0 驗證
       if (!formData.salesCode) {
@@ -902,6 +842,22 @@ const handleServiceCategoryToggle = (categoryValue) => {
           setMessage('請填寫所有服務品項與數量');
           return false;
         }
+
+        // 🆕 檢查 S-G000 的最低數量限制
+        const sequencingItem = formData.serviceItems.find(item => item.category === '定序服務 (S)');
+        if (sequencingItem) {
+          const sg000Service = sequencingItem.services.find(s => 
+            s.service === 'S-G000 二代定序 - 定序量購買'
+          );
+          
+          if (sg000Service && sg000Service.quantity) {
+            const quantity = parseInt(sg000Service.quantity);
+            if (quantity < 5) {
+              setMessage('❌ S-G000 定序量購買最低數量為 5 GB');
+              return false;
+            }
+          }
+        }        
       // 🆕 檢查建庫服務是否與萃取類型匹配
       const extractionType = getExtractionType();
       const libraryItem = formData.serviceItems.find(item => item.category === '建庫服務 (L)');
@@ -928,103 +884,381 @@ const handleServiceCategoryToggle = (categoryValue) => {
       }
       break;        
       
-        case 3:
-          // 🆕 檢查 Sample_Name 是否重複TGIAOrderForm 
-          if (formData.sampleType === 'Library') {
-            // Library: 檢查兩個工作表
-            
-            // 檢查 Sample Sheet
-            const sampleNames1 = formData.libraryInfo.sampleSheet
-              .map(row => row.sampleName.trim())
-              .filter(name => name); // 過濾空白
-            
-            const duplicates1 = sampleNames1.filter((name, index) => 
-              sampleNames1.indexOf(name) !== index
-            );
-            
-            if (duplicates1.length > 0) {
-              const uniqueDuplicates1 = [...new Set(duplicates1)];
-              setMessage(`❌ Library Sample Sheet 中有重複的 Sample_Name：${uniqueDuplicates1.join(', ')}`);
-              return false;
-            }
-            
-            // 檢查 Library Sample Sheet
-            const sampleNames2 = formData.libraryInfo.librarySampleSheet
-              .map(row => row.sampleName.trim())
-              .filter(name => name);
-            
-            const duplicates2 = sampleNames2.filter((name, index) => 
-              sampleNames2.indexOf(name) !== index
-            );
-            
-            if (duplicates2.length > 0) {
-              const uniqueDuplicates2 = [...new Set(duplicates2)];
-              setMessage(`❌ Library Sample Sheet (第二個表格) 中有重複的 Sample_Name：${uniqueDuplicates2.join(', ')}`);
-              return false;
-            }
-            
-          } else if (formData.sampleType !== '無送樣') {
-            // Sample (DNA/RNA/Cell/Blood): 檢查單一工作表
-            const sampleNames = formData.sampleInfo.sampleSheet
-              .map(row => row.sampleName.trim())
-              .filter(name => name); // 過濾空白
-            
-            const duplicates = sampleNames.filter((name, index) => 
-              sampleNames.indexOf(name) !== index
-            );
-            
-            if (duplicates.length > 0) {
-              const uniqueDuplicates = [...new Set(duplicates)];
-              setMessage(`❌ Sample Sheet 中有重複的 Sample_Name：${uniqueDuplicates.join(', ')}`);
-              return false;
-            }
+    case 3:
+      const errors = {
+        sampleSheet: {},
+        librarySampleSheet: {},
+        libraryDetailSheet: {}
+      };
+      
+      if (formData.sampleType === 'Library') {
+        // ========== Library 驗證 ==========
+        
+        // === 1. Library (第一個表格) 驗證 ===
+        for (let i = 0; i < formData.libraryInfo.sampleSheet.length; i++) {
+          const row = formData.libraryInfo.sampleSheet[i];
+          const rowNum = i + 1;
+          
+          // 🆕 檢查 Sample_Name (sampleName)
+          if (!row.sampleName || !row.sampleName.trim()) {
+            if (!errors.sampleSheet[i]) errors.sampleSheet[i] = {};
+            errors.sampleSheet[i].sampleName = 'Sample_Name 不可為空';
           }
-          break;        
-      case 4:
-        if (!formData.signature) {
-          setMessage('請先簽名確認訂單內容');
+          
+          // 🆕 檢查 Tube_Name (tubeLabel)
+          if (!row.tubeLabel || !row.tubeLabel.trim()) {
+            if (!errors.sampleSheet[i]) errors.sampleSheet[i] = {};
+            errors.sampleSheet[i].tubeLabel = 'Tube Label 不可為空';
+          }
+          
+          // 🆕 檢查 預期定序量 (expectedSeq)
+          if (!row.expectedSeq || !row.expectedSeq.trim()) {
+            if (!errors.sampleSheet[i]) errors.sampleSheet[i] = {};
+            errors.sampleSheet[i].expectedSeq = '預期定序量不可為空';
+          }
+        }
+        
+        // === 2. Library 第一個表格重複檢查 ===
+        const sampleNames1 = formData.libraryInfo.sampleSheet
+          .map((row, idx) => ({ name: row.sampleName?.trim(), idx }))
+          .filter(item => item.name);
+        
+        const duplicateMap1 = {};
+        sampleNames1.forEach(item => {
+          if (duplicateMap1[item.name]) {
+            duplicateMap1[item.name].push(item.idx);
+          } else {
+            duplicateMap1[item.name] = [item.idx];
+          }
+        });
+        
+        Object.entries(duplicateMap1).forEach(([name, indices]) => {
+          if (indices.length > 1) {
+            indices.forEach(idx => {
+              if (!errors.sampleSheet[idx]) errors.sampleSheet[idx] = {};
+              errors.sampleSheet[idx].sampleName = `重複的 Sample_Name: ${name}`;
+            });
+          }
+        });
+        
+        // === 3. Library Sample Sheet (第二個表格) 驗證 ===
+        for (let i = 0; i < formData.libraryInfo.librarySampleSheet.length; i++) {
+          const row = formData.libraryInfo.librarySampleSheet[i];
+          const rowNum = i + 1;
+          
+          // 🆕 檢查 Sample_Name (sampleName)
+          if (!row.sampleName || !row.sampleName.trim()) {
+            if (!errors.libraryDetailSheet[i]) errors.libraryDetailSheet[i] = {};
+            errors.libraryDetailSheet[i].sampleName = 'Sample_Name 不可為空';
+          }
+          
+          // 🆕 檢查 Index 1 (i7) (index1Seq)
+          if (!row.index1Seq || !row.index1Seq.trim()) {
+            if (!errors.libraryDetailSheet[i]) errors.libraryDetailSheet[i] = {};
+            errors.libraryDetailSheet[i].index1Seq = 'Index 1 (i7) 不可為空';
+          }
+          
+          // 🆕 檢查 Index 2 (i5) (index2Seq)
+          if (!row.index2Seq || !row.index2Seq.trim()) {
+            if (!errors.libraryDetailSheet[i]) errors.libraryDetailSheet[i] = {};
+            errors.libraryDetailSheet[i].index2Seq = 'Index 2 (i5) 不可為空';
+          }
+          
+          // 🆕 檢查 Library (library)
+          if (!row.library || !row.library.trim()) {
+            if (!errors.libraryDetailSheet[i]) errors.libraryDetailSheet[i] = {};
+            errors.libraryDetailSheet[i].library = 'Library 不可為空';
+          }
+        }
+        
+        // === 4. Library Sample Sheet 重複檢查 ===
+        const sampleNames2 = formData.libraryInfo.librarySampleSheet
+          .map((row, idx) => ({ name: row.sampleName?.trim(), idx }))
+          .filter(item => item.name);
+        
+        const duplicateMap2 = {};
+        sampleNames2.forEach(item => {
+          if (duplicateMap2[item.name]) {
+            duplicateMap2[item.name].push(item.idx);
+          } else {
+            duplicateMap2[item.name] = [item.idx];
+          }
+        });
+        
+        Object.entries(duplicateMap2).forEach(([name, indices]) => {
+          if (indices.length > 1) {
+            indices.forEach(idx => {
+              if (!errors.libraryDetailSheet[idx]) errors.libraryDetailSheet[idx] = {};
+              errors.libraryDetailSheet[idx].sampleName = `重複的 Sample_Name: ${name}`;
+            });
+          }
+        });
+        
+      } else if (formData.sampleType !== '無送樣') {
+        // ========== Sample (DNA/RNA/Cell/Blood) 驗證 ==========
+        
+        // 檢查空值
+        for (let i = 0; i < formData.sampleInfo.sampleSheet.length; i++) {
+          const row = formData.sampleInfo.sampleSheet[i];
+          const rowNum = i + 1;
+          
+          if (!row.sampleName || !row.sampleName.trim()) {
+            if (!errors.sampleSheet[i]) errors.sampleSheet[i] = {};
+            errors.sampleSheet[i].sampleName = 'Sample_Name 不可為空';
+          }
+          
+          if (!row.tubeLabel || !row.tubeLabel.trim()) {
+            if (!errors.sampleSheet[i]) errors.sampleSheet[i] = {};
+            errors.sampleSheet[i].tubeLabel = 'Tube Label 不可為空';
+          }
+          // 🆕 檢查預期定序量
+          if (!row.expectedSeq || !String(row.expectedSeq).trim()) {
+            if (!errors.sampleSheet[i]) errors.sampleSheet[i] = {};
+            errors.sampleSheet[i].expectedSeq = '預期定序量不可為空';
+          }          
+        }
+        
+        // 檢查重複
+        const sampleNames = formData.sampleInfo.sampleSheet
+          .map((row, idx) => ({ name: row.sampleName?.trim(), idx }))
+          .filter(item => item.name);
+        
+        const duplicateMap = {};
+        sampleNames.forEach(item => {
+          if (duplicateMap[item.name]) {
+            duplicateMap[item.name].push(item.idx);
+          } else {
+            duplicateMap[item.name] = [item.idx];
+          }
+        });
+        
+        Object.entries(duplicateMap).forEach(([name, indices]) => {
+          if (indices.length > 1) {
+            indices.forEach(idx => {
+              if (!errors.sampleSheet[idx]) errors.sampleSheet[idx] = {};
+              errors.sampleSheet[idx].sampleName = `重複的 Sample_Name: ${name}`;
+            });
+          }
+        });
+      }
+      
+      // 如果有錯誤，設置錯誤狀態並返回 false
+      if (Object.keys(errors.sampleSheet).length > 0 || 
+          Object.keys(errors.libraryDetailSheet).length > 0) {
+        setFieldErrors(errors);
+        setMessage('❌ 表格中有錯誤，請檢查紅色標示的欄位');
+        return false;
+      }
+      
+      // 🆕 定序量檢查（無論過多過少都不能通過）
+      const totalSequencing = calculateTotalSequencing();
+      const expectedSequencing = calculateExpectedSequencing();
+      if (totalSequencing > 0 && formData.sampleType !== '無送樣') {
+        if (expectedSequencing === 0) {
+          setMessage('❌ 請填寫樣本的預期定序量');
           return false;
         }
-        break;
-    }
-    setMessage('');
-    return true;
-  };
+        
+        if (expectedSequencing > totalSequencing) {
+          const diff = expectedSequencing - totalSequencing;
+          setMessage(`❌ 預期定序量超過委託量 ${diff.toLocaleString()} GB，請調整樣本預期定序量或增加定序服務數量`);
+          return false;
+        }
+        
+        if (expectedSequencing < totalSequencing) {
+          const diff = totalSequencing - expectedSequencing;
+          setMessage(`❌ 預期定序量不足，還有 ${diff.toLocaleString()} GB 未分配，請調整樣本預期定序量`);
+          return false;
+        }
+      }
+      break;
+  }
+  
+  setMessage('');
+  return true;
+};
 
 const nextStep = () => {
-  if (validateStep(currentStep)) {
-    // 從步驟1到步驟2時，根據勾選的類別自動生成表單
-    if (currentStep === 1 && formData.selectedServiceCategories.length > 0) {
-      // 🆕 定義固定的服務類別順序
-      const categoryOrder = [
-        'QC (Q)',
-        '萃取/QC (EQ)',
-        '建庫服務 (L)',
-        '定序服務 (S)',
-        '分析服務 (A)',
-        '套組產品 (AP)'
-      ];
+  if (isLocked) return;
+
+  if (!validateStep(currentStep)) return;
+
+  // 從步驟1到步驟2時
+  if (currentStep === 1 && formData.selectedServiceCategories.length > 0) {
+    
+    // 🆕 特殊處理：如果選擇了 AP 套組
+    if (formData.selectedServiceCategories.includes('套組產品 (AP)')) {
+      const newServiceItems = [{
+        category: '套組產品 (AP)',
+        services: [{ service: '', quantity: '1' }],
+        libraryType: '無',
+        seqSpec: ''
+      }];
       
-      // 🆕 根據預定義順序排序已選擇的類別
-      const sortedCategories = categoryOrder.filter(cat => 
-        formData.selectedServiceCategories.includes(cat)
-      );
+      setFormData(prev => ({ ...prev, serviceItems: newServiceItems }));
+      setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
+      window.scrollTo(0, 0);
+      return;
+    }
+    
+    // 原有的處理邏輯（一般服務類別）
+    const categoryOrder = [
+      'QC (Q)', '萃取/QC (EQ)', '建庫服務 (L)', '定序服務 (S)', '分析服務 (A)', '套組產品 (AP)'
+    ];
+    const sortedCategories = categoryOrder.filter(cat =>
+      formData.selectedServiceCategories.includes(cat)
+    );
+
+    let newServiceItems;
+
+    if (formData.selectedPackage) {
+      const selectedPkg = safeCommonPackages.find(pkg => pkg.id === formData.selectedPackage);
       
-      const newServiceItems = sortedCategories.map(category => ({
-        category: category,
+      if (selectedPkg && selectedPkg.defaultServices) {
+        // 按照順序建立 serviceItems
+        newServiceItems = sortedCategories.map(category => {
+          // 找出該類別的預設服務
+          const defaultServices = selectedPkg.defaultServices.filter(
+            svc => svc.category === category
+          );
+          
+          if (defaultServices.length > 0) {
+            // 有預設服務，帶入預設值
+            return {
+              category,
+              services: defaultServices.map(ds => ({
+                service: ds.service || '',
+                quantity: ds.defaultQuantity || '1'
+              })),
+              libraryType: '無',
+              seqSpec: ''
+            };
+          } else {
+            // 沒有預設服務，給空白
+            return {
+              category,
+              services: [{ service: '', quantity: '' }],
+              libraryType: '無',
+              seqSpec: ''
+            };
+          }
+        });
+      } else {
+        // 找不到組合配置，使用空骨架
+        console.warn('找不到組合配置，使用空骨架');
+        newServiceItems = sortedCategories.map(category => ({
+          category,
+          services: [{ service: '', quantity: '' }],
+          libraryType: '無',
+          seqSpec: ''
+        }));
+      }
+    } else {
+      // 一般模式：給空骨架
+      newServiceItems = sortedCategories.map(category => ({
+        category,
         services: [{ service: '', quantity: '' }],
         libraryType: '無',
         seqSpec: ''
       }));
-      
-      setFormData(prev => ({ ...prev, serviceItems: newServiceItems }));
     }
-    
-    setCurrentStep(prev => Math.min(prev + 1, steps.length));
-    window.scrollTo(0, 0);
-  }
-};
 
+    setFormData(prev => ({ ...prev, serviceItems: newServiceItems }));
+  }
+
+  // 從步驟2進入步驟3時的處理
+  if (currentStep === 2) {
+    // 🆕 如果選擇了 AP 套組，自動設定樣品類型和定序量
+    if (formData.selectedServiceCategories.includes('套組產品 (AP)')) {
+      const apItem = formData.serviceItems.find(item => item.category === '套組產品 (AP)');
+      if (apItem && apItem.services[0].service) {
+        const selectedAPService = apItem.services[0].service;
+        const quantity = parseInt(apItem.services[0].quantity) || 1; // 數量 = 樣本數
+        const apOptions = serviceOptionsByCategory['套組產品 (AP)'] || [];
+        const apConfig = apOptions.find(opt => opt.value === selectedAPService);
+        
+        if (apConfig && apConfig.binding) {
+          // 自動設定樣品類型
+          if (apConfig.binding.sampleType) {
+            setFormData(prev => ({
+              ...prev,
+              sampleType: apConfig.binding.sampleType
+            }));
+          }
+          
+          // 🆕 根據數量自動建立樣本行，每行的預期定序量都是固定值
+          if (apConfig.binding.seqAmountGb) {
+            const seqPerSample = apConfig.binding.seqAmountGb; // 每個樣本的定序量
+            
+            // 建立對應數量的樣本行
+            const sampleRows = Array.from({ length: quantity }, (_, idx) => ({
+              no: idx + 1,
+              sampleName: '',
+              tubeLabel: '',
+              expectedSeq: String(seqPerSample), // 🔒 固定值
+              conc: '',
+              vol: '',
+              ratio260280: '',
+              ratio260230: '',
+              dqnRqn: '',
+              note: ''
+            }));
+            
+            const libraryRows = Array.from({ length: quantity }, (_, idx) => ({
+              no: idx + 1,
+              sampleName: '',
+              tubeLabel: '',
+              conc: '',
+              vol: '',
+              ngsConc: '',
+              expectedSeq: String(seqPerSample), // 🔒 固定值
+              note: ''
+            }));
+            
+            // 根據樣品類型更新對應的表單
+            if (apConfig.binding.sampleType === 'Library') {
+              setFormData(prev => ({
+                ...prev,
+                libraryInfo: {
+                  ...prev.libraryInfo,
+                  sampleSheet: libraryRows
+                },
+                sampleCount: quantity // 🆕 自動設定樣本數量
+              }));
+            } else if (apConfig.binding.sampleType !== '無送樣') {
+              setFormData(prev => ({
+                ...prev,
+                sampleInfo: {
+                  ...prev.sampleInfo,
+                  sampleSheet: sampleRows
+                },
+                sampleCount: quantity // 🆕 自動設定樣本數量
+              }));
+            }
+            
+            const totalSeq = seqPerSample * quantity;
+            setMessage(`✓ 已自動建立 ${quantity} 個樣本，每個樣本定序量 ${seqPerSample} GB，總計 ${totalSeq} GB`);
+            setTimeout(() => setMessage(''), 3500);
+          }
+        }
+      }
+    } else {
+      // 原有的邏輯（非 AP 套組）
+      const allowedTypes = getAllowedSampleTypes();
+      if (!allowedTypes.includes(formData.sampleType)) {
+        setFormData(prev => ({
+          ...prev,
+          sampleType: allowedTypes[0]
+        }));
+        setMessage(`✓ 已自動選擇樣品類型：${allowedTypes[0]}`);
+        setTimeout(() => setMessage(''), 2000);
+      }
+    }
+  }
+
+  setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
+  window.scrollTo(0, 0);
+};
 
 // 🆕 重新設計：根據具體萃取品項判斷類型
 const getExtractionType = () => {
@@ -1056,32 +1290,169 @@ const getExtractionType = () => {
 
 // 🆕 根據萃取類型過濾建庫服務選項
 const getFilteredLibraryServices = () => {
-  const extractionType = getExtractionType();
   const allServices = serviceOptionsByCategory['建庫服務 (L)'] || [];
   
-  if (!extractionType) {
-    // 沒有萃取服務，顯示全部
-    return allServices;
+  // 🆕 第一步：套組過濾
+  let filtered = allServices;
+  
+  if (formData.selectedPackage) {
+    const pkg = safeCommonPackages.find(p => p.id === formData.selectedPackage);
+    if (pkg && pkg.serviceFilters && pkg.serviceFilters['建庫服務 (L)']) {
+      const allowed = pkg.serviceFilters['建庫服務 (L)'].allowedServices || [];
+      if (allowed.length > 0) {
+        const allowSet = new Set(allowed);
+        filtered = filtered.filter(opt => {
+          const v = typeof opt === 'string' ? opt : opt.value;
+          return allowSet.has(v);
+        });
+      }
+    }
   }
   
-  if (extractionType === 'MIXED') {
-    // 混合類型，顯示全部
-    return allServices;
+  // 第二步：萃取類型過濾（原有邏輯）
+  const extractionType = getExtractionType();
+  
+  if (!extractionType) {
+    return filtered;
   }
   
   if (extractionType === 'DNA') {
-    // 只顯示 DNA 相關建庫（排除 L-RN 開頭）
-    return allServices.filter(opt => !opt.value.startsWith('L-RN'));
+    return filtered.filter(opt => !opt.value.startsWith('L-RN'));
   }
   
   if (extractionType === 'RNA') {
-    // 只顯示 RNA 相關建庫（L-RN 開頭）
-    return allServices.filter(opt => opt.value.startsWith('L-RN'));
+    return filtered.filter(opt => opt.value.startsWith('L-RN'));
   }
   
-  return allServices;
+  if (extractionType === 'MIXED') {
+    return filtered;
+  }
+  
+  return filtered;
 };
+
+
+
+// 依「套組」限制某一類別在 Step2 可選的服務
+const getServiceOptionsForCategory = (category) => {
+  const base = serviceOptionsByCategory?.[category] || [];
+  let filtered = base;
+  
+  // 第一步：根據套組過濾
+  const pkg = formData?.selectedPackage
+    ? commonPackages.find(p => p.id === formData.selectedPackage)
+    : null;
+
+  if (pkg && pkg.serviceFilters && pkg.serviceFilters[category]) {
+    const allowed = pkg.serviceFilters[category].allowedServices || [];
+    if (allowed.length > 0) {
+      const allowSet = new Set(allowed);
+      filtered = filtered.filter(opt => {
+        const v = typeof opt === 'string' ? opt : opt.value;
+        return allowSet.has(v);
+      });
+    }
+  }
+
+  // 第二步：建庫服務根據萃取類型過濾
+  if (category === '建庫服務 (L)') {
+    const extractionType = getExtractionType();
+    
+    if (extractionType === 'DNA') {
+      filtered = filtered.filter(opt => {
+        const v = typeof opt === 'string' ? opt : opt.value;
+        return !v.startsWith('L-RN');
+      });
+    } else if (extractionType === 'RNA') {
+      filtered = filtered.filter(opt => {
+        const v = typeof opt === 'string' ? opt : opt.value;
+        return v.startsWith('L-RN');
+      });
+    }
+  }
+
+  // 🆕 第三步：分析服務根據萃取類型過濾
+  if (category === '分析服務 (A)') {
+    const extractionType = getExtractionType();
+    
+    if (extractionType === 'DNA') {
+      // DNA 萃取：排除 RNA 相關分析
+      filtered = filtered.filter(opt => {
+        const v = typeof opt === 'string' ? opt : opt.value;
+        const name = v.toLowerCase();
+        // 方法1：根據編號前綴（例如 A3 開頭是 RNA）
+        // return !v.startsWith('A3');
+        
+        // 方法2：根據關鍵字
+        return !name.includes('rna') && !name.includes('rnaseq');
+      });
+    } else if (extractionType === 'RNA') {
+      // RNA 萃取：只保留 RNA 相關分析
+      filtered = filtered.filter(opt => {
+        const v = typeof opt === 'string' ? opt : opt.value;
+        const name = v.toLowerCase();
+        // 方法1：根據編號前綴
+        // return v.startsWith('A3');
+        
+        // 方法2：根據關鍵字
+        return name.includes('rna') || name.includes('rnaseq');
+      });
+    }
+  }
+
+  return filtered;
+};
+
+// 🆕 根據服務類別獲取允許的樣品類型
+const getAllowedSampleTypes = () => {
+  const hasEQ = formData.selectedServiceCategories.includes('萃取/QC (EQ)');
+  const hasLibrary = formData.selectedServiceCategories.includes('建庫服務 (L)');
+  const hasSequencing = formData.selectedServiceCategories.includes('定序服務 (S)');
+  
+  // 情況1：有萃取 - 不能選 DNA/RNA/Library（因為萃取是從原始樣本提取）
+  if (hasEQ) {
+    return ['Cell', 'Blood', '其他'];
+  }
+  
+  // 情況2：有建庫但沒萃取 - 不能選 Library（因為建庫是將 DNA/RNA 做成 Library）
+  if (hasLibrary && !hasEQ) {
+    return ['DNA', 'RNA'];
+  }
+  
+  // 情況3：只有定序（沒有萃取、沒有建庫）- 只能選 Library
+  if (hasSequencing && !hasEQ && !hasLibrary) {
+    return ['Library'];
+  }
+  
+  // 其他情況或沒有選擇任何服務：全部可選
+  return ['無送樣', 'Library', 'DNA', 'RNA', 'Cell', 'Blood', '其他'];
+};
+
+// 🆕 獲取樣品類型限制的提示訊息
+const getSampleTypeRestrictionMessage = () => {
+  const hasEQ = formData.selectedServiceCategories.includes('萃取/QC (EQ)');
+  const hasLibrary = formData.selectedServiceCategories.includes('建庫服務 (L)');
+  const hasSequencing = formData.selectedServiceCategories.includes('定序服務 (S)');
+  
+  if (hasEQ) {
+    return '📌「萃取/QC」服務，請送原始樣本（Cell、Blood 等）';
+  }
+  
+  if (hasLibrary && !hasEQ) {
+    return '📌 「建庫服務」，請送 DNA 或 RNA 樣本';
+  }
+  
+  if (hasSequencing && !hasEQ && !hasLibrary) {
+    return '📌「定序服務」，請送已經完成建庫的 Library';
+  }
+  
+  return '';
+};
+
+
+
   const prevStep = () => {
+    if (isLocked) return;
     setCurrentStep(prev => Math.max(prev - 1, 0));
     window.scrollTo(0, 0);
   };
@@ -1117,16 +1488,69 @@ const getFilteredLibraryServices = () => {
   };
 
   const handleServiceChange = (itemIndex, serviceIndex, field, value) => {
+
     const newItems = [...formData.serviceItems];
     newItems[itemIndex].services[serviceIndex][field] = value;
+    // ✅ 當欄位是 service 時，若有選套組，則限制只允許 allowedServices
+    if (field === 'service' && formData.selectedPackage) {
+      const category = newItems[itemIndex].category;
+      const allowedOpts = getServiceOptionsForCategory(category);
+      const allowedSet = new Set(
+        allowedOpts.map(opt => (typeof opt === 'string' ? opt : opt.value))
+      );
+
+      if (value && !allowedSet.has(value)) {
+        // 還原成空值，並提示
+        newItems[itemIndex].services[serviceIndex].service = '';
+        setMessage(`❌ 此服務不在套組允許清單中，請選擇符合「${category}」的允許服務`);
+        setTimeout(() => setMessage(''), 2500);
+      }
+    }    
+    // 🆕 S-G000 最低值即時檢查
+    if (field === 'quantity') {
+      const service = newItems[itemIndex].services[serviceIndex].service;
+      if (service === 'S-G000 二代定序 - 定序量購買') {
+        const quantity = parseInt(value);
+        if (value && quantity < 5) {
+          setMessage('⚠️ S-G000 定序量購買最低數量為 5 GB');
+          setTimeout(() => setMessage(''), 3000);
+        }
+      }
+    }    
     setFormData(prev => ({ ...prev, serviceItems: newItems }));
   };
 
   const addService = (itemIndex) => {
-    const newItems = [...formData.serviceItems];
-    newItems[itemIndex].services.push({ service: '', quantity: '' });
-    setFormData(prev => ({ ...prev, serviceItems: newItems }));
+    if (isLocked) {
+      setMessage('⚠️ 此訂單已提交並鎖定，無法新增品項');
+      return;
+    }
+
+    const items = [...formData.serviceItems];
+    const category = items[itemIndex].category;
+
+    // 只允許「分析服務 (A)」新增
+    if (!canAddServiceForCategory(category)) {
+      setMessage(`此類別「${category}」不允許新增品項`);
+      return;
+    }
+
+    // 取該類別允許的選項（已含套組過濾/正規化處理）
+    const allowedOpts = getServiceOptionsForCategory(category);
+    const first = allowedOpts[0];
+
+    const value = first
+      ? (typeof first === 'string' ? first : (first.value ?? first.label))
+      : '';
+
+    items[itemIndex].services.push({
+      service: value,     // 沒選項就給空字串，避免炸掉
+      quantity: '1'
+    });
+
+    setFormData(prev => ({ ...prev, serviceItems: items }));
   };
+
 
   const removeService = (itemIndex, serviceIndex) => {
     const newItems = [...formData.serviceItems];
@@ -1159,12 +1583,21 @@ const getFilteredLibraryServices = () => {
     setFormData(prev => ({ ...prev, serviceItems: newItems }));
   };
 
+  // 🆕 修改 handleLibrarySampleSheetChange
   const handleLibrarySampleSheetChange = (index, field, value) => {
     const newSampleSheet = [...formData.libraryInfo.sampleSheet];
-    newSampleSheet[index][field] = field === 'sampleName' ? sanitizeSampleName(value) : value;
     
-    // 🆕 自動計算樣本數量
-    const count = newSampleSheet.filter(row => row.sampleName && row.sampleName.trim() !== '').length;
+    // 🆕 如果是 AP 套組，阻止修改 expectedSeq
+    if (field === 'expectedSeq') {
+      const apConfig = getAPPackageConfig();
+      if (apConfig) {
+        setMessage(`⚠️ 套組產品的預期定序量已鎖定為 ${apConfig.seqPerSample} GB，無法修改`);
+        setTimeout(() => setMessage(''), 2500);
+        return; // 阻止修改
+      }
+    }
+    
+    newSampleSheet[index][field] = field === 'sampleName' ? sanitizeSampleName(value) : value;
     
     setFormData(prev => ({
       ...prev,
@@ -1174,7 +1607,6 @@ const getFilteredLibraryServices = () => {
       }
     }));
   };
-
   const handleTablePaste = (e, startIndex) => {
     e.preventDefault();
     const pastedText = e.clipboardData.getData('text');
@@ -1378,38 +1810,6 @@ const removeLibrarySampleSheetRow = (index) => {
     }));
   };
 
-  // const downloadExcelTemplate = async () => {
-  //   try {
-  //     const XLSX = await import('xlsx');
-      
-  //     const sampleSheetData = [
-  //       ['序號', 'Sample_Name', 'Tube Label', 'Conc (ng/ul)', 'Vol (uL)', 'NGS上機濃度 (pM)', '預期定序量', '備註'],
-  //       [1, '', '', '', '', '', '', ''],
-  //       [2, '', '', '', '', '', '', ''],
-  //       [3, '', '', '', '', '', '', '']
-  //     ];
-      
-  //     const librarySheetData = [
-  //       ['序號', 'Sample_Name', 'Library Prep Kit', 'Index Adapter Kit', 'Set-Well Position', 'Index 1 (i7)', 'Index 2 (i5)', '備註', 'Library'],
-  //       [1, '', '', '', '', '', '', '', ''],
-  //       [2, '', '', '', '', '', '', '', ''],
-  //       [3, '', '', '', '', '', '', '', '']
-  //     ];
-      
-  //     const wb = XLSX.utils.book_new();
-  //     const ws1 = XLSX.utils.aoa_to_sheet(sampleSheetData);
-  //     const ws2 = XLSX.utils.aoa_to_sheet(librarySheetData);
-      
-  //     XLSX.utils.book_append_sheet(wb, ws1, 'Sample Sheet');
-  //     XLSX.utils.book_append_sheet(wb, ws2, 'Library Sample Sheet');
-      
-  //     XLSX.writeFile(wb, 'Library_Template.xlsx');
-  //     setMessage('Excel 範本已下載');
-  //     setTimeout(() => setMessage(''), 2000);
-  //   } catch (error) {
-  //     alert('下載失敗：' + error.message);
-  //   }
-  // };
 
 const handleExcelUpload = async (e) => {
   const file = e.target.files[0];
@@ -1435,7 +1835,7 @@ const handleExcelUpload = async (e) => {
         const newSampleSheet = [];
         jsonData.forEach((row, index) => {
           // 🆕 從第 2 行開始（index > 1），跳過標題和範例行
-          if (index > 1 && row && row.length > 1) {
+          if (index > 3 && row && row.length > 1) {
             const hasSeqNum = typeof row[0] === 'number' || !isNaN(row[0]);
             const startIdx = hasSeqNum ? 1 : 0;
             
@@ -1486,7 +1886,7 @@ const handleExcelUpload = async (e) => {
         const newLibrarySheet = [];
         jsonData.forEach((row, index) => {
           // 🆕 從第 2 行開始（index > 1），跳過標題和範例行
-          if (index > 1 && row && row.length > 1) {
+          if (index > 3 && row && row.length > 1) {
             const hasSeqNum = typeof row[0] === 'number' || !isNaN(row[0]);
             const startIdx = hasSeqNum ? 1 : 0;
             
@@ -1536,7 +1936,7 @@ const handleExcelUpload = async (e) => {
       const newSampleSheet = [];
       jsonData.forEach((row, index) => {
         // 🆕 從第 3 行開始（index > 2），因為 Sample 範本有大標題
-        if (index > 2 && row && row.length > 1) {
+        if (index > 4 && row && row.length > 1) {
           const hasSeqNum = typeof row[0] === 'number' || !isNaN(row[0]);
           const startIdx = hasSeqNum ? 1 : 0;
           
@@ -1668,9 +2068,19 @@ const handleExcelUpload = async (e) => {
   // 🆕 修改 handleSampleSheetChange
   const handleSampleSheetChange = (index, field, value) => {
     const newSampleSheet = [...formData.sampleInfo.sampleSheet];
+    
+    // 🆕 如果是 AP 套組，阻止修改 expectedSeq
+    if (field === 'expectedSeq') {
+      const apConfig = getAPPackageConfig();
+      if (apConfig) {
+        setMessage(`⚠️ 套組產品的預期定序量已鎖定為 ${apConfig.seqPerSample} GB，無法修改`);
+        setTimeout(() => setMessage(''), 2500);
+        return; // 阻止修改
+      }
+    }
+    
     newSampleSheet[index][field] = field === 'sampleName' ? sanitizeSampleName(value) : value;
     
-    // 🆕 自動計算樣本數量
     const count = newSampleSheet.filter(row => row.sampleName && row.sampleName.trim() !== '').length;
     
     setFormData(prev => ({
@@ -1679,7 +2089,7 @@ const handleExcelUpload = async (e) => {
         ...prev.sampleInfo,
         sampleSheet: newSampleSheet
       },
-      sampleCount: count  // 🆕 自動更新
+      sampleCount: count
     }));
   };
 
@@ -1745,11 +2155,14 @@ const handleSampleTablePaste = (e, startIndex) => {
 
 // 🆕 修改 addSampleSheetRow
 const addSampleSheetRow = () => {
+  const apConfig = getAPPackageConfig();
+  const expectedSeq = apConfig ? String(apConfig.seqPerSample) : ''; // 🔒 AP 套組自動帶入
+  
   const newRow = {
     no: formData.sampleInfo.sampleSheet.length + 1,
     sampleName: '',
     tubeLabel: '',
-    expectedSeq: '',
+    expectedSeq: expectedSeq, // 🆕 自動帶入
     conc: '',
     vol: '',
     ratio260280: '',
@@ -1759,7 +2172,6 @@ const addSampleSheetRow = () => {
   };
   const newSampleSheet = [...formData.sampleInfo.sampleSheet, newRow];
   
-  // 🆕 計算樣本數量
   const count = newSampleSheet.filter(row => row.sampleName && row.sampleName.trim() !== '').length;
   
   setFormData(prev => ({
@@ -1768,7 +2180,7 @@ const addSampleSheetRow = () => {
       ...prev.sampleInfo,
       sampleSheet: newSampleSheet
     },
-    sampleCount: count  // 🆕 自動更新
+    sampleCount: count
   }));
 };
 
@@ -1794,13 +2206,13 @@ const removeSampleSheetRow = (index) => {
 };
   const handleSignatureSave = (signatureData) => {
     setFormData(prev => ({ ...prev, signature: signatureData }));
-    setShowSignaturePad(false);
+    // setShowSignaturePad(false);
     setMessage('簽名已保存');
     setTimeout(() => setMessage(''), 2000);
   };
 
   const handleSignatureCancel = () => {
-    setShowSignaturePad(false);
+    // setShowSignaturePad(false);
   };
 
   const clearSignature = () => {
@@ -1849,6 +2261,10 @@ const removeSampleSheetRow = (index) => {
   };
 
   const handleSubmit = async () => {
+    if (isLocked) {
+      setMessage('⚠️ 此需求已提交，請勿重複送出');
+      return
+    };
     if (!validateStep(4)) {
       return;
     }
@@ -1869,6 +2285,7 @@ const removeSampleSheetRow = (index) => {
         setExportReady(true);
         setOrderId(result.orderId);
         setMessage(`需求單已成功提交！編號：${result.orderId}`);
+        setIsLocked(true);
         setTimeout(() => {
           setSubmitted(false);
         }, 5000);
@@ -2024,6 +2441,7 @@ const removeSampleSheetRow = (index) => {
       </div>
     );
   };
+  
   // 🆕 渲染步驟0：快速帶入（簡化版）
   const renderStep0 = () => {
     const salesExists = formData.salesCode && salesCodes.find(s => s.code === formData.salesCode);
@@ -2485,13 +2903,147 @@ const removeSampleSheetRow = (index) => {
         </div>
       </div>
 
+    {/* 🆕 常用組合快速選擇 */}
+    {/* 常用組合快速選擇 */}
+<div className="border-2 border-purple-300 rounded-lg p-6 bg-gradient-to-br from-purple-50 to-pink-50">
+  <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+    ⚡ 快速選擇常用組合
+  </h3>
+  
+  <div className="mb-4">
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      選擇預設組合（選擇後將自動勾選對應服務類別）
+    </label>
+    <select
+      value={formData.selectedPackage}
+      onChange={(e) => handlePackageSelect(e.target.value)}
+      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-base"
+    >
+      <option value="">-- 常用組合可以幫助您更快挑選你需要的服務 --</option>
+      {safeCommonPackages.map((pkg) => (
+        <option key={pkg.id} value={pkg.id}>
+          {pkg.icon} {pkg.name}
+        </option>
+      ))}
+    </select>
+  </div>
+  
+  {/* 顯示選中組合的預覽 */}
+  {formData.selectedPackage && (
+    <div className="bg-white rounded-lg p-4 border-2 border-purple-200">
+      {(() => {
+        const pkg = safeCommonPackages.find(p => p.id === formData.selectedPackage);
+        
+        if (!pkg) {
+          return (
+            <div className="text-red-600 text-sm">
+              ⚠️ 找不到此組合配置
+            </div>
+          );
+        }
+        
+        return (
+          <>
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h4 className="font-semibold text-purple-800 text-base mb-1">
+                  {pkg.icon} {pkg.name}
+                </h4>
+                <p className="text-sm text-gray-600">{pkg.description}</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearPackage}
+                className="text-red-600 hover:text-red-800 text-sm flex items-center gap-1 px-3 py-1 rounded hover:bg-red-50 border border-red-300"
+              >
+                <X size={16} />
+                清除
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-gray-700 mb-2">
+                📦 將自動勾選以下服務類別：
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {(pkg.categories || []).map((cat, idx) => (
+                  <span
+                    key={idx}
+                    className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
+                  >
+                    {cat}
+                  </span>
+                ))}
+              </div>
+              
+              {pkg.defaultServices && pkg.defaultServices.length > 0 && (
+                <>
+                  <p className="text-xs font-semibold text-gray-700 mt-4 mb-2">
+                    🛠️ 預設服務品項（進入下一步可調整數量）：
+                  </p>
+                  {pkg.defaultServices.map((svc, idx) => (
+                    <div key={idx} className="bg-purple-50 rounded p-2 text-xs">
+                      <span className="text-gray-600">{svc.category}</span>
+                      <div className="text-gray-800 mt-1">
+                        • {svc.service} <span className="text-purple-600 font-semibold">× {svc.defaultQuantity}</span>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+              
+              {pkg.recommendedSampleType && (
+                <div className="mt-3 pt-3 border-t border-purple-200">
+                  <p className="text-xs text-gray-600">
+                    💡 建議樣品類型：
+                    <span className="font-semibold text-purple-700 ml-1">
+                      {pkg.recommendedSampleType}
+                    </span>
+                  </p>
+                </div>
+              )}
+            </div>
+          </>
+        );
+      })()}
+    </div>
+  )}
+  
+  <div className="mt-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded text-sm text-gray-700">
+    <p className="font-semibold text-blue-800 mb-1">💡 使用說明</p>
+    <ul className="space-y-1 ml-4 text-xs">
+      <li>• 選擇常用組合後，系統會自動勾選對應的服務類別</li>
+      <li>• 進入 Step 2 後，會自動帶入預設的服務品項</li>
+      <li>• 您可以在 Step 2 調整每個品項的數量或新增其他服務</li>
+      <li>• 如果不想使用組合，可直接在下方手動勾選服務類別</li>
+    </ul>
+  </div>
+</div>
+
 
       {/* 服務類別勾選 */}
       <div className="border-2 border-blue-300 rounded-lg p-6 bg-blue-50">
-        <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-          <Check size={20} className="text-blue-600" />
-          請勾選需要的服務類別 <span className="text-red-600">*</span>
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-700 flex items-center gap-2">
+            <Check size={20} className="text-blue-600" />
+            請勾選需要的服務類別 <span className="text-red-600">*</span>
+          </h3>
+          
+          {/* 🆕 一鍵清除按鈕 */}
+          <button
+            type="button"
+            onClick={handleClearAllCategories}
+            disabled={formData.selectedServiceCategories.length === 0}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+              formData.selectedServiceCategories.length === 0
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-red-500 text-white hover:bg-red-600 hover:shadow-md'
+            }`}
+          >
+            <RotateCcw size={16} />
+            清除全部
+          </button>
+        </div>
         <p className="text-sm text-gray-600 mb-4">
           💡 選擇後，下一步將自動帶入對應的表單項目
         </p>
@@ -2540,6 +3092,93 @@ const renderStep2 = () => {
     <div className="space-y-6">
       <div className="border-2 border-blue-300 rounded-lg p-6 bg-blue-50">
         <h3 className="text-xl font-bold text-gray-800 mb-4">委託內容</h3>
+        {/* 🆕 組合倍數調整區塊（只在使用組合時顯示） */}
+        {formData.selectedPackage && (
+          <div className="border-2 border-purple-300 rounded-lg p-4 bg-gradient-to-br from-purple-50 to-pink-50">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <h4 className="font-semibold text-purple-800 mb-1 flex items-center gap-2">
+                  ⚡ 樣本數量
+                  {(() => {
+                    const pkg = safeCommonPackages.find(p => p.id === formData.selectedPackage);
+                    return pkg ? (
+                      <span className="text-sm font-normal text-gray-600">
+                        ({pkg.icon} {pkg.name})
+                      </span>
+                    ) : null;
+                  })()}
+                </h4>
+                <p className="text-xs text-gray-600">
+                  調整樣本數量會同步更新所有組合服務的數量（自行新增的服務不受影響）
+                </p>
+              </div>
+              
+              {/* 倍數輸入框 */}
+              <div className="flex items-center gap-3 ml-4">
+                <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                  樣本數量：
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handlePackageMultiplierChange(formData.packageMultiplier - 1)}
+                    disabled={formData.packageMultiplier <= 1}
+                    className="w-8 h-8 rounded-lg border-2 border-purple-300 bg-white hover:bg-purple-50 disabled:bg-gray-100 disabled:border-gray-200 disabled:cursor-not-allowed flex items-center justify-center font-bold text-purple-600"
+                  >
+                    −
+                  </button>
+                  
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={formData.packageMultiplier}
+                    onChange={(e) => handlePackageMultiplierChange(e.target.value)}
+                    className="w-20 px-3 py-2 border-2 border-purple-300 rounded-lg text-center font-semibold text-purple-700 focus:ring-2 focus:ring-purple-500"
+                  />
+                  
+                  <button
+                    type="button"
+                    onClick={() => handlePackageMultiplierChange(formData.packageMultiplier + 1)}
+                    className="w-8 h-8 rounded-lg border-2 border-purple-300 bg-white hover:bg-purple-50 flex items-center justify-center font-bold text-purple-600"
+                  >
+                    +
+                  </button>
+                  
+                  <span className="text-sm text-gray-600 ml-2">倍</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* 顯示計算後的數量預覽 */}
+            {(() => {
+              const pkg = safeCommonPackages.find(p => p.id === formData.selectedPackage);
+              if (!pkg) return null;
+              
+              // return (
+              //   <div className="mt-3 pt-3 border-t border-purple-200">
+              //     <p className="text-xs font-semibold text-gray-700 mb-2">
+              //       📊 當前組合服務數量：
+              //     </p>
+              //     <div className="flex flex-wrap gap-2">
+              //       {pkg.defaultServices.map((svc, idx) => {
+              //         const actualQuantity = (parseInt(svc.defaultQuantity) || 1) * formData.packageMultiplier;
+              //         return (
+              //           <div key={idx} className="bg-white rounded px-3 py-1.5 text-xs border border-purple-200">
+              //             <span className="text-gray-600">{svc.category.replace(/\s*\([^)]*\)/, '')}</span>
+              //             <span className="mx-1.5">→</span>
+              //             <span className="font-semibold text-purple-700">
+              //               {actualQuantity}
+              //             </span>
+              //           </div>
+              //         );
+              //       })}
+              //     </div>
+              //   </div>
+              // );
+            })()}
+          </div>
+        )}
         
         {/* 🆕 顯示萃取類型提示 */}
         {extractionType && (
@@ -2591,21 +3230,27 @@ const renderStep2 = () => {
                   <label className="block text-sm font-medium text-gray-700">
                     服務品項與數量 <span className="text-red-600">*</span>
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => addService(index)}
-                    className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 px-3 py-1 rounded hover:bg-blue-50"
-                  >
-                    <Plus size={16} />
-                    新增品項
-                  </button>
+                  {canAddServiceForCategory(item.category) && (
+                    <button
+                      type="button"
+                      onClick={() => addService(index)}
+                      disabled={isLocked}
+                      className={`text-sm flex items-center gap-1 px-3 py-1 rounded transition
+                        ${isLocked
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-blue-600 hover:text-blue-800 hover:bg-blue-50'}`}
+                    >
+                      <Plus size={16} />
+                      新增品項
+                    </button>
+                  )}
                 </div>
                 
                 {item.services.map((serviceItem, serviceIndex) => {
                   // 🆕 動態獲取當前可用的服務選項
                   const availableOptions = item.category === '建庫服務 (L)' 
                     ? getFilteredLibraryServices() 
-                    : serviceOptionsByCategory[item.category] || [];
+                    : getServiceOptionsForCategory(item.category) || [];  // ✅ 正確：函數調用
                   
                   // 🆕 檢查當前選擇的服務是否還在可用列表中
                   const isCurrentServiceAvailable = availableOptions.some(
@@ -2659,16 +3304,41 @@ const renderStep2 = () => {
                       
                       {/* 顯示選中服務的說明 */}
                       {serviceItem.service && isCurrentServiceAvailable && (
-                        <div className="ml-3 px-3 py-2 bg-blue-50 border-l-4 border-blue-400 text-sm text-gray-700">
-                          <span className="font-semibold text-blue-700">說明：</span>
-                          {availableOptions.find(opt => opt.value === serviceItem.service)?.description || '無說明'}
+                        <div className="ml-3 mt-2">
+                          {(() => {
+                            const desc = availableOptions.find(opt => opt.value === serviceItem.service)?.description || '無說明';
+                            const lines = desc.split('\n').filter(line => line.trim());
+                            
+                            return (
+                              <div className="px-3 py-2 bg-blue-50 border-l-4 border-blue-400 rounded-r text-sm">
+                                <span className="font-semibold text-blue-700 block mb-2">說明：</span>
+                                <div className="space-y-1.5 text-gray-700">
+                                  {lines.map((line, idx) => {
+                                    // 檢查是否為列表項（以數字或符號開頭）
+                                    const isListItem = /^[\d]+[.)]\s*/.test(line) || /^[•\-*]\s*/.test(line);
+                                    
+                                    if (isListItem) {
+                                      return (
+                                        <div key={idx} className="flex items-start gap-2 pl-2">
+                                          <span className="text-blue-500 flex-shrink-0">•</span>
+                                          <span className="flex-1">{line.replace(/^[\d]+[.)]\s*|^[•\-*]\s*/, '')}</span>
+                                        </div>
+                                      );
+                                    }
+                                    
+                                    return <div key={idx} className={idx === 0 ? 'font-medium' : ''}>{line}</div>;
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })()}
                           
                           {/* 顯示單項定序量 */}
                           {item.category === '定序服務 (S)' && sequencingDataMap[serviceItem.service] && (
-                            <div className="mt-2 pt-2 border-t border-blue-200">
+                            <div className="mt-2 px-3 py-2 bg-green-50 border-l-4 border-green-400 rounded-r text-sm">
                               <span className="font-semibold text-green-700">定序量：</span>
                               <span className="text-green-600 ml-2">
-                                {sequencingDataMap[serviceItem.service]} GB/個 × {serviceItem.quantity || 0} = 
+                                {/* {sequencingDataMap[serviceItem.service]} GB/個 × {serviceItem.quantity || 0} =  */}
                                 <span className="font-bold ml-1">
                                   {(sequencingDataMap[serviceItem.service] * (parseInt(serviceItem.quantity) || 0)).toLocaleString()} GB
                                 </span>
@@ -2708,17 +3378,81 @@ const renderStep2 = () => {
   );
 };
 
-  // 渲染步驟3：送測樣品資訊 (因為太長，這裡簡化顯示部分內容)
+  // 渲染步驟3：送測樣品資訊 
   const renderStep3 = () => {
   const totalSequencing = calculateTotalSequencing(); // Step2 的總定序量
   const expectedSequencing = calculateExpectedSequencing(); // Step3 樣本的預期定序量
-  const isOverLimit = expectedSequencing > totalSequencing; // 是否超過    
+  const isOverLimit = expectedSequencing > totalSequencing; // 是否超過
+  // 🆕 獲取允許的樣品類型
+  // 🆕 檢查是否為 AP 套組
+  // 🆕 檢查是否為 AP 套組
+  const isAPPackage = formData.selectedServiceCategories.includes('套組產品 (AP)');
+  // 🆕 計算 AP 套組資訊（含數量）
+  const apPackageInfo = isAPPackage ? (() => {
+    const apItem = formData.serviceItems.find(item => item.category === '套組產品 (AP)');
+    if (apItem && apItem.services[0].service) {
+      const quantity = parseInt(apItem.services[0].quantity) || 1;
+      const apOptions = serviceOptionsByCategory['套組產品 (AP)'] || [];
+      const config = apOptions.find(opt => opt.value === apItem.services[0].service);
+      
+      if (config) {
+        return {
+          ...config,
+          quantity: quantity,
+          totalSeqAmount: config.binding?.seqAmountGb 
+            ? config.binding.seqAmountGb * quantity 
+            : null
+        };
+      }
+    }
+    return null;
+  })() : null;
+  
+  // 🆕 獲取允許的樣品類型
+  const allowedSampleTypes = isAPPackage && apPackageInfo?.binding?.sampleType
+    ? [apPackageInfo.binding.sampleType]  // AP 套組：只允許指定的類型
+    : getAllowedSampleTypes();  // 一般服務：依原邏輯
+  
+  const restrictionMessage = isAPPackage 
+    ? `📦 此為套組產品，樣品類型固定為：${apPackageInfo?.binding?.sampleType || '未設定'}`
+    : getSampleTypeRestrictionMessage();
   
   return (
     <div className="space-y-6">
       <div className="border-2 border-green-300 rounded-lg p-6 bg-green-50">
         <h3 className="text-xl font-bold text-gray-800 mb-6">送測樣品資訊</h3>
-        
+
+        {/* 🆕 AP 套組資訊提示 */}
+        {isAPPackage && apPackageInfo && (
+          <div className="mb-6 border-2 border-purple-300 rounded-lg p-4 bg-gradient-to-br from-purple-50 to-pink-50">
+            <h4 className="font-semibold text-purple-800 mb-2 flex items-center gap-2">
+              📦 套組產品資訊
+            </h4>
+            <div className="space-y-2 text-sm">
+              <div className="bg-white p-3 rounded">
+                <span className="text-gray-600 font-medium">套組名稱：</span>
+                <span className="text-purple-700 font-bold ml-2">{apPackageInfo.value}</span>
+              </div>
+              {apPackageInfo.binding && (
+                <>
+                  {apPackageInfo.binding.sampleType && (
+                    <div className="bg-white p-3 rounded">
+                      <span className="text-gray-600 font-medium">套組樣品類型：</span>
+                      <span className="text-blue-700 font-bold ml-2">{apPackageInfo.binding.sampleType}</span>
+                    </div>
+                  )}
+                  {apPackageInfo.binding.seqAmountGb && (
+                    <div className="bg-white p-3 rounded">
+                      <span className="text-gray-600 font-medium">定序量：</span>
+                      <span className="text-green-700 font-bold ml-2">{apPackageInfo.binding.seqAmountGb} GB/樣本</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* 🆕 定序量比對顯示（放在最上方） */}
         {totalSequencing > 0 && formData.sampleType !== '無送樣' && (
           <div className={`mb-6 border-2 rounded-lg p-4 ${
@@ -2783,6 +3517,15 @@ const renderStep2 = () => {
           <h5 className="font-semibold text-gray-700">樣本資訊</h5>
         </div>        
         
+        {/* 🆕 顯示樣品類型限制提示 */}
+        {/* {restrictionMessage && (
+          <div className="mb-4 p-3 bg-blue-50 border-2 border-blue-300 rounded-lg">
+            <p className="text-sm text-blue-800 font-medium">
+              {restrictionMessage}
+            </p>
+          </div>
+        )} */}
+        
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             樣品類型 <span className="text-red-600">*</span>
@@ -2790,28 +3533,44 @@ const renderStep2 = () => {
           <select
             name="sampleType"
             value={formData.sampleType}
-            onChange={handleInputChange}
+            onChange={(e) => {
+              const newValue = e.target.value;
+              // 🆕 檢查是否為允許的選項
+              if (!allowedSampleTypes.includes(newValue)) {
+                setMessage('❌ 此樣品類型不符合您選擇的服務類別');
+                setTimeout(() => setMessage(''), 3000);
+                return;
+              }
+              handleInputChange(e);
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
           >
-            <option>無送樣</option>
-            <option>Library</option>
-            <option>DNA</option>
-            <option>RNA</option>
-            <option>Cell</option>
-            <option>Blood</option>
-            <option>其他</option>
+            {/* 🆕 只顯示允許的選項 */}
+            {allowedSampleTypes.map(type => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
           </select>
-        {/* 🆕 當選擇「其他」時顯示輸入框 */}
-        {formData.sampleType === '其他' && (
-          <input
-            type="text"
-            name="sampleTypeOther"
-            value={formData.sampleTypeOther}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 mt-2"
-            placeholder="請說明樣品類型"
-          />
-        )}          
+          
+          {/* 🆕 當選擇的類型不被允許時顯示警告 */}
+          {formData.sampleType && !allowedSampleTypes.includes(formData.sampleType) && (
+            <div className="mt-2 p-2 bg-red-50 border border-red-300 rounded text-sm text-red-700">
+              ⚠️ 目前選擇的樣品類型「{formData.sampleType}」與您的服務類別不符，請重新選擇
+            </div>
+          )}
+          
+          {/* 當選擇「其他」時顯示輸入框 */}
+          {formData.sampleType === '其他' && (
+            <input
+              type="text"
+              name="sampleTypeOther"
+              value={formData.sampleTypeOther}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 mt-2"
+              placeholder="請說明樣品類型"
+            />
+          )}
         </div>
         
         {/* Library 送件資訊 */}
@@ -2969,7 +3728,7 @@ const renderStep2 = () => {
                   <thead>
                     <tr className="bg-gray-100">
                       <th className="border p-2">序號</th>
-                      <th className="border p-2">Sample_Name*</th>
+                      <th className="border p-2">Library Name*</th>
                       <th className="border p-2">Tube Label*</th>
                       <th className="border p-2">Conc* (ng/ul)</th>
                       <th className="border p-2">Vol* (uL)</th>
@@ -2979,26 +3738,82 @@ const renderStep2 = () => {
                       <th className="border p-2">操作</th>
                     </tr>
                   </thead>
+                  {/* Sample Sheet (Library 第一個表格) */}
                   <tbody onPaste={(e) => handleTablePaste(e, 0)}>
                     {formData.libraryInfo.sampleSheet.map((row, idx) => (
                       <tr key={idx} className="bg-white">
                         <td className="border p-2 text-center">{idx + 1}</td>
+                        
+                        {/* 🆕 Sample_Name - 加入錯誤檢查 */}
                         <td className="border p-2">
                           <input
                             type="text"
                             value={row.sampleName}
-                            onChange={(e) => handleLibrarySampleSheetChange(idx, 'sampleName', e.target.value)}
-                            className="w-full px-2 py-1 border rounded"
+                            onChange={(e) => {
+                              handleLibrarySampleSheetChange(idx, 'sampleName', e.target.value);
+                              // 清除錯誤
+                              if (fieldErrors.sampleSheet[idx]?.sampleName) {
+                                setFieldErrors(prev => {
+                                  const newErrors = { ...prev };
+                                  if (newErrors.sampleSheet[idx]) {
+                                    delete newErrors.sampleSheet[idx].sampleName;
+                                    if (Object.keys(newErrors.sampleSheet[idx]).length === 0) {
+                                      delete newErrors.sampleSheet[idx];
+                                    }
+                                  }
+                                  return newErrors;
+                                });
+                              }
+                            }}
+                            className={`w-full px-2 py-1 border rounded ${
+                              fieldErrors.sampleSheet[idx]?.sampleName 
+                                ? 'bg-red-100 border-red-500 focus:ring-red-500' 
+                                : ''
+                            }`}
+                            title={fieldErrors.sampleSheet[idx]?.sampleName || ''}
                           />
+                          {fieldErrors.sampleSheet[idx]?.sampleName && (
+                            <p className="text-xs text-red-600 mt-1">
+                              {fieldErrors.sampleSheet[idx].sampleName}
+                            </p>
+                          )}
                         </td>
+                        
+                        {/* 🆕 Tube Label - 加入錯誤檢查 */}
                         <td className="border p-2">
                           <input
                             type="text"
                             value={row.tubeLabel}
-                            onChange={(e) => handleLibrarySampleSheetChange(idx, 'tubeLabel', e.target.value)}
-                            className="w-full px-2 py-1 border rounded"
+                            onChange={(e) => {
+                              handleLibrarySampleSheetChange(idx, 'tubeLabel', e.target.value);
+                              // 清除錯誤
+                              if (fieldErrors.sampleSheet[idx]?.tubeLabel) {
+                                setFieldErrors(prev => {
+                                  const newErrors = { ...prev };
+                                  if (newErrors.sampleSheet[idx]) {
+                                    delete newErrors.sampleSheet[idx].tubeLabel;
+                                    if (Object.keys(newErrors.sampleSheet[idx]).length === 0) {
+                                      delete newErrors.sampleSheet[idx];
+                                    }
+                                  }
+                                  return newErrors;
+                                });
+                              }
+                            }}
+                            className={`w-full px-2 py-1 border rounded ${
+                              fieldErrors.sampleSheet[idx]?.tubeLabel 
+                                ? 'bg-red-100 border-red-500 focus:ring-red-500' 
+                                : ''
+                            }`}
+                            title={fieldErrors.sampleSheet[idx]?.tubeLabel || ''}
                           />
+                          {fieldErrors.sampleSheet[idx]?.tubeLabel && (
+                            <p className="text-xs text-red-600 mt-1">
+                              {fieldErrors.sampleSheet[idx].tubeLabel}
+                            </p>
+                          )}
                         </td>
+                        
                         <td className="border p-2">
                           <input
                             type="number"
@@ -3023,14 +3838,51 @@ const renderStep2 = () => {
                             className="w-full px-2 py-1 border rounded"
                           />
                         </td>
+                        
+                        {/* 🆕 預期定序量 - 加入錯誤檢查 */}
                         <td className="border p-2">
                           <input
                             type="number"
                             value={row.expectedSeq}
-                            onChange={(e) => handleLibrarySampleSheetChange(idx, 'expectedSeq', e.target.value)}
-                            className="w-full px-2 py-1 border rounded"
+                            onChange={(e) => {
+                              handleLibrarySampleSheetChange(idx, 'expectedSeq', e.target.value);
+                              // 有錯誤時，使用者修改就清掉這個欄位的錯誤
+                              if (fieldErrors.sampleSheet[idx]?.expectedSeq) {
+                                setFieldErrors(prev => {
+                                  const newErrors = { ...prev };
+                                  if (newErrors.sampleSheet[idx]) {
+                                    delete newErrors.sampleSheet[idx].expectedSeq;
+                                    if (Object.keys(newErrors.sampleSheet[idx]).length === 0) {
+                                      delete newErrors.sampleSheet[idx];
+                                    }
+                                  }
+                                  return newErrors;
+                                });
+                              }
+                            }}
+                            readOnly={!!getAPPackageConfig()} // AP 套組時唯讀
+                            className={`w-full px-2 py-1 border rounded ${
+                              fieldErrors.sampleSheet[idx]?.expectedSeq
+                                ? 'bg-red-100 border-red-500 focus:ring-red-500'
+                                : getAPPackageConfig()
+                                ? 'bg-purple-100 cursor-not-allowed font-bold text-purple-700'
+                                : ''
+                            }`}
+                            title={
+                              fieldErrors.sampleSheet[idx]?.expectedSeq
+                                ? fieldErrors.sampleSheet[idx].expectedSeq
+                                : getAPPackageConfig()
+                                ? '套組產品定序量已鎖定'
+                                : ''
+                            }
                           />
+                          {fieldErrors.sampleSheet[idx]?.expectedSeq && (
+                            <p className="text-xs text-red-600 mt-1">
+                              {fieldErrors.sampleSheet[idx].expectedSeq}
+                            </p>
+                          )}
                         </td>
+                        
                         <td className="border p-2">
                           <input
                             type="text"
@@ -3053,7 +3905,7 @@ const renderStep2 = () => {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                                  </table>
               </div>
             </div>
 
@@ -3104,97 +3956,215 @@ const renderStep2 = () => {
                       <th className="border p-2">操作</th>
                     </tr>
                   </thead>
-                  <tbody onPaste={(e) => handleLibraryDetailTablePaste(e, 0)}>
-                    {formData.libraryInfo.librarySampleSheet.map((row, idx) => (
-                      <tr key={idx} className="bg-white">
-                        <td className="border p-2 text-center">{idx + 1}</td>
-                        <td className="border p-2">
-                          <input
-                            type="text"
-                            value={row.sampleName}
-                            onChange={(e) => handleLibraryDetailChange(idx, 'sampleName', e.target.value)}
-                            className="w-full px-2 py-1 border rounded text-xs"
-                          />
-                        </td>
-                        <td className="border p-2">
-                          <input
-                            type="text"
-                            value={row.libraryPrepKit}
-                            onChange={(e) => handleLibraryDetailChange(idx, 'libraryPrepKit', e.target.value)}
-                            className="w-full px-2 py-1 border rounded text-xs"
-                          />
-                        </td>
-                        <td className="border p-2">
-                          <input
-                            type="text"
-                            value={row.indexAdapterKit}
-                            onChange={(e) => handleLibraryDetailChange(idx, 'indexAdapterKit', e.target.value)}
-                            className="w-full px-2 py-1 border rounded text-xs"
-                          />
-                        </td>
-                        <td className="border p-2">
-                          <input
-                            type="text"
-                            value={row.setWellPosition}
-                            onChange={(e) => handleLibraryDetailChange(idx, 'setWellPosition', e.target.value)}
-                            className="w-full px-2 py-1 border rounded text-xs"
-                          />
-                        </td>
-                        <td className="border p-2">
-                          <input
-                            type="text"
-                            value={row.index1Seq}
-                            onChange={(e) => handleLibraryDetailChange(idx, 'index1Seq', e.target.value)}
-                            className="w-full px-2 py-1 border rounded text-xs"
-                          />
-                        </td>
-                        <td className="border p-2">
-                          <input
-                            type="text"
-                            value={row.index2Seq}
-                            onChange={(e) => handleLibraryDetailChange(idx, 'index2Seq', e.target.value)}
-                            className="w-full px-2 py-1 border rounded text-xs"
-                          />
-                        </td>
-                        <td className="border p-2">
-                          <input
-                            type="text"
-                            value={row.note}
-                            onChange={(e) => handleLibraryDetailChange(idx, 'note', e.target.value)}
-                            className="w-full px-2 py-1 border rounded text-xs"
-                          />
-                        </td>
-                        <td className="border p-2">
-                          <input
-                            type="text"
-                            list={`library-options-${idx}`}
-                            value={row.library}
-                            onChange={(e) => handleLibraryDetailChange(idx, 'library', e.target.value)}
-                            className="w-full px-2 py-1 border rounded text-xs"
-                            placeholder="輸入或選擇"
-                          />
-                          <datalist id={`library-options-${idx}`}>
-                            {formData.libraryInfo.sampleSheet.map((sample, sIdx) => (
-                              sample.sampleName && (
-                                <option key={sIdx} value={sample.sampleName} />
-                              )
-                            ))}
-                          </datalist>
-                        </td>
-                        <td className="border p-2 text-center">
-                          {formData.libraryInfo.librarySampleSheet.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeLibraryDetailRow(idx)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <X size={16} />
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
+                  {/* Library Sample Sheet (第二個表格) */}
+<tbody onPaste={(e) => handleLibraryDetailTablePaste(e, 0)}>
+  {formData.libraryInfo.librarySampleSheet.map((row, idx) => (
+    <tr key={idx} className="bg-white">
+      <td className="border p-2 text-center">{idx + 1}</td>
+      
+      {/* 🆕 Sample_Name - 必填 */}
+      <td className="border p-2">
+        <input
+          type="text"
+          value={row.sampleName}
+          onChange={(e) => {
+            handleLibraryDetailChange(idx, 'sampleName', e.target.value);
+            // 清除錯誤
+            if (fieldErrors.libraryDetailSheet[idx]?.sampleName) {
+              setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                if (newErrors.libraryDetailSheet[idx]) {
+                  delete newErrors.libraryDetailSheet[idx].sampleName;
+                  if (Object.keys(newErrors.libraryDetailSheet[idx]).length === 0) {
+                    delete newErrors.libraryDetailSheet[idx];
+                  }
+                }
+                return newErrors;
+              });
+            }
+          }}
+          className={`w-full px-2 py-1 border rounded text-xs ${
+            fieldErrors.libraryDetailSheet[idx]?.sampleName 
+              ? 'bg-red-100 border-red-500 focus:ring-red-500' 
+              : ''
+          }`}
+          title={fieldErrors.libraryDetailSheet[idx]?.sampleName || ''}
+        />
+        {fieldErrors.libraryDetailSheet[idx]?.sampleName && (
+          <p className="text-xs text-red-600 mt-1">
+            {fieldErrors.libraryDetailSheet[idx].sampleName}
+          </p>
+        )}
+      </td>
+      
+      {/* Library Prep Kit */}
+      <td className="border p-2">
+        <input
+          type="text"
+          value={row.libraryPrepKit}
+          onChange={(e) => handleLibraryDetailChange(idx, 'libraryPrepKit', e.target.value)}
+          className="w-full px-2 py-1 border rounded text-xs"
+        />
+      </td>
+      
+      {/* Index Adapter Kit */}
+      <td className="border p-2">
+        <input
+          type="text"
+          value={row.indexAdapterKit}
+          onChange={(e) => handleLibraryDetailChange(idx, 'indexAdapterKit', e.target.value)}
+          className="w-full px-2 py-1 border rounded text-xs"
+        />
+      </td>
+      
+      {/* Set-Well Position */}
+      <td className="border p-2">
+        <input
+          type="text"
+          value={row.setWellPosition}
+          onChange={(e) => handleLibraryDetailChange(idx, 'setWellPosition', e.target.value)}
+          className="w-full px-2 py-1 border rounded text-xs"
+        />
+      </td>
+      
+      {/* 🆕 Index 1 (i7) - 必填 */}
+      <td className="border p-2">
+        <input
+          type="text"
+          value={row.index1Seq}
+          onChange={(e) => {
+            handleLibraryDetailChange(idx, 'index1Seq', e.target.value);
+            // 清除錯誤
+            if (fieldErrors.libraryDetailSheet[idx]?.index1Seq) {
+              setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                if (newErrors.libraryDetailSheet[idx]) {
+                  delete newErrors.libraryDetailSheet[idx].index1Seq;
+                  if (Object.keys(newErrors.libraryDetailSheet[idx]).length === 0) {
+                    delete newErrors.libraryDetailSheet[idx];
+                  }
+                }
+                return newErrors;
+              });
+            }
+          }}
+          className={`w-full px-2 py-1 border rounded text-xs ${
+            fieldErrors.libraryDetailSheet[idx]?.index1Seq 
+              ? 'bg-red-100 border-red-500 focus:ring-red-500' 
+              : ''
+          }`}
+          title={fieldErrors.libraryDetailSheet[idx]?.index1Seq || ''}
+        />
+        {fieldErrors.libraryDetailSheet[idx]?.index1Seq && (
+          <p className="text-xs text-red-600 mt-1">
+            {fieldErrors.libraryDetailSheet[idx].index1Seq}
+          </p>
+        )}
+      </td>
+      
+      {/* 🆕 Index 2 (i5) - 必填 */}
+      <td className="border p-2">
+        <input
+          type="text"
+          value={row.index2Seq}
+          onChange={(e) => {
+            handleLibraryDetailChange(idx, 'index2Seq', e.target.value);
+            // 清除錯誤
+            if (fieldErrors.libraryDetailSheet[idx]?.index2Seq) {
+              setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                if (newErrors.libraryDetailSheet[idx]) {
+                  delete newErrors.libraryDetailSheet[idx].index2Seq;
+                  if (Object.keys(newErrors.libraryDetailSheet[idx]).length === 0) {
+                    delete newErrors.libraryDetailSheet[idx];
+                  }
+                }
+                return newErrors;
+              });
+            }
+          }}
+          className={`w-full px-2 py-1 border rounded text-xs ${
+            fieldErrors.libraryDetailSheet[idx]?.index2Seq 
+              ? 'bg-red-100 border-red-500 focus:ring-red-500' 
+              : ''
+          }`}
+          title={fieldErrors.libraryDetailSheet[idx]?.index2Seq || ''}
+        />
+        {fieldErrors.libraryDetailSheet[idx]?.index2Seq && (
+          <p className="text-xs text-red-600 mt-1">
+            {fieldErrors.libraryDetailSheet[idx].index2Seq}
+          </p>
+        )}
+      </td>
+      
+      {/* 備註 */}
+      <td className="border p-2">
+        <input
+          type="text"
+          value={row.note}
+          onChange={(e) => handleLibraryDetailChange(idx, 'note', e.target.value)}
+          className="w-full px-2 py-1 border rounded text-xs"
+        />
+      </td>
+      
+      {/* 🆕 Library - 必填 */}
+      <td className="border p-2">
+        <input
+          type="text"
+          list={`library-options-${idx}`}
+          value={row.library}
+          onChange={(e) => {
+            handleLibraryDetailChange(idx, 'library', e.target.value);
+            // 清除錯誤
+            if (fieldErrors.libraryDetailSheet[idx]?.library) {
+              setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                if (newErrors.libraryDetailSheet[idx]) {
+                  delete newErrors.libraryDetailSheet[idx].library;
+                  if (Object.keys(newErrors.libraryDetailSheet[idx]).length === 0) {
+                    delete newErrors.libraryDetailSheet[idx];
+                  }
+                }
+                return newErrors;
+              });
+            }
+          }}
+          className={`w-full px-2 py-1 border rounded text-xs ${
+            fieldErrors.libraryDetailSheet[idx]?.library 
+              ? 'bg-red-100 border-red-500 focus:ring-red-500' 
+              : ''
+          }`}
+          placeholder="輸入或選擇"
+          title={fieldErrors.libraryDetailSheet[idx]?.library || ''}
+        />
+        <datalist id={`library-options-${idx}`}>
+          {formData.libraryInfo.sampleSheet.map((sample, sIdx) => (
+            sample.sampleName && (
+              <option key={sIdx} value={sample.sampleName} />
+            )
+          ))}
+        </datalist>
+        {fieldErrors.libraryDetailSheet[idx]?.library && (
+          <p className="text-xs text-red-600 mt-1">
+            {fieldErrors.libraryDetailSheet[idx].library}
+          </p>
+        )}
+      </td>
+      
+      <td className="border p-2 text-center">
+        {formData.libraryInfo.librarySampleSheet.length > 1 && (
+          <button
+            type="button"
+            onClick={() => removeLibraryDetailRow(idx)}
+            className="text-red-500 hover:text-red-700"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </td>
+    </tr>
+  ))}
+</tbody>
                 </table>
               </div>
             </div>
@@ -3324,22 +4294,22 @@ const renderStep2 = () => {
             </div>
 
             <div className="flex gap-2">
-              <button
+              {/* <button
                 type="button"
                 onClick={downloadSampleTemplate}
                 className="text-xs text-green-600 hover:text-green-800 flex items-center gap-1 px-2 py-1 rounded hover:bg-green-50 border border-green-300"
               >
                 <Download size={14} />
                 下載範本
-              </button>
-              <button
+              </button> */}
+              {/* <button
                 type="button"
                 onClick={() => excelUploadRef.current?.click()}
                 className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 px-2 py-1 rounded hover:bg-blue-50 border border-blue-300"
               >
                 <Upload size={14} />
                 上傳 Excel
-              </button>
+              </button> */}
               <button
                 type="button"
                 onClick={clearSampleInfoSheet}
@@ -3376,35 +4346,123 @@ const renderStep2 = () => {
                     <th className="border p-2">操作</th>
                   </tr>
                 </thead>
-                <tbody onPaste={(e) => handleSampleTablePaste(e, 0)}>
-                  {formData.sampleInfo.sampleSheet.map((row, idx) => (
-                    <tr key={idx} className="bg-white">
-                      <td className="border p-2 text-center">{idx + 1}</td>
+              <tbody onPaste={(e) => handleSampleTablePaste(e, 0)}>
+                {formData.sampleInfo.sampleSheet.map((row, idx) => (
+                  <tr key={idx} className="bg-white">
+                    <td className="border p-2 text-center">{idx + 1}</td>
+                    
+                      {/* Sample_Name */}
                       <td className="border p-2">
                         <input
                           type="text"
                           value={row.sampleName}
-                          onChange={(e) => handleSampleSheetChange(idx, 'sampleName', e.target.value)}
-                          className="w-full px-2 py-1 border rounded"
-                          placeholder="勿用數字開頭"
+                          onChange={(e) => {
+                            handleSampleSheetChange(idx, 'sampleName', e.target.value);
+                            if (fieldErrors.sampleSheet[idx]?.sampleName) {
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                if (newErrors.sampleSheet[idx]) {
+                                  delete newErrors.sampleSheet[idx].sampleName;
+                                  if (Object.keys(newErrors.sampleSheet[idx]).length === 0) {
+                                    delete newErrors.sampleSheet[idx];
+                                  }
+                                }
+                                return newErrors;
+                              });
+                            }
+                          }}
+                          className={`w-full px-2 py-1 border rounded ${
+                            fieldErrors.sampleSheet[idx]?.sampleName 
+                              ? 'bg-red-100 border-red-500 focus:ring-red-500' 
+                              : ''
+                          }`}
+                          placeholder=""
+                          title={fieldErrors.sampleSheet[idx]?.sampleName || ''}
                         />
+                        {fieldErrors.sampleSheet[idx]?.sampleName && (
+                          <p className="text-xs text-red-600 mt-1">
+                            {fieldErrors.sampleSheet[idx].sampleName}
+                          </p>
+                        )}
                       </td>
+                      
+                      {/* Tube Label */}
                       <td className="border p-2">
                         <input
                           type="text"
                           value={row.tubeLabel}
-                          onChange={(e) => handleSampleSheetChange(idx, 'tubeLabel', e.target.value)}
-                          className="w-full px-2 py-1 border rounded"
+                          onChange={(e) => {
+                            handleSampleSheetChange(idx, 'tubeLabel', e.target.value);
+                            if (fieldErrors.sampleSheet[idx]?.tubeLabel) {
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                if (newErrors.sampleSheet[idx]) {
+                                  delete newErrors.sampleSheet[idx].tubeLabel;
+                                  if (Object.keys(newErrors.sampleSheet[idx]).length === 0) {
+                                    delete newErrors.sampleSheet[idx];
+                                  }
+                                }
+                                return newErrors;
+                              });
+                            }
+                          }}
+                          className={`w-full px-2 py-1 border rounded ${
+                            fieldErrors.sampleSheet[idx]?.tubeLabel 
+                              ? 'bg-red-100 border-red-500 focus:ring-red-500' 
+                              : ''
+                          }`}
+                          title={fieldErrors.sampleSheet[idx]?.tubeLabel || ''}
                         />
+                        {fieldErrors.sampleSheet[idx]?.tubeLabel && (
+                          <p className="text-xs text-red-600 mt-1">
+                            {fieldErrors.sampleSheet[idx].tubeLabel}
+                          </p>
+                        )}
                       </td>
                       <td className="border p-2">
                         <input
-                          type="text"
+                          type="number"
                           value={row.expectedSeq}
-                          onChange={(e) => handleSampleSheetChange(idx, 'expectedSeq', e.target.value)}
-                          className="w-full px-2 py-1 border rounded"
+                          onChange={(e) => {
+                            handleSampleSheetChange(idx, 'expectedSeq', e.target.value);
+
+                            // 🆕 有錯誤時，使用者一輸入就清掉這欄的錯誤
+                            if (fieldErrors.sampleSheet[idx]?.expectedSeq) {
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                if (newErrors.sampleSheet[idx]) {
+                                  delete newErrors.sampleSheet[idx].expectedSeq;
+                                  if (Object.keys(newErrors.sampleSheet[idx]).length === 0) {
+                                    delete newErrors.sampleSheet[idx];
+                                  }
+                                }
+                                return newErrors;
+                              });
+                            }
+                          }}
+                          readOnly={!!getAPPackageConfig()} // AP 套組時唯讀
+                          className={`w-full px-2 py-1 border rounded ${
+                            fieldErrors.sampleSheet[idx]?.expectedSeq
+                              ? 'bg-red-100 border-red-500 focus:ring-red-500'
+                              : getAPPackageConfig()
+                              ? 'bg-purple-100 cursor-not-allowed font-bold text-purple-700'
+                              : ''
+                          }`}
+                          title={
+                            fieldErrors.sampleSheet[idx]?.expectedSeq
+                              ? fieldErrors.sampleSheet[idx].expectedSeq
+                              : getAPPackageConfig()
+                              ? '套組產品定序量已鎖定'
+                              : ''
+                          }
                         />
+                        {fieldErrors.sampleSheet[idx]?.expectedSeq && (
+                          <p className="text-xs text-red-600 mt-1">
+                            {fieldErrors.sampleSheet[idx].expectedSeq}
+                          </p>
+                        )}
                       </td>
+
                       <td className="border p-2">
                         <input
                           type="number"
@@ -3494,6 +4552,17 @@ const renderStep2 = () => {
               <option>Tempus Tube(Blood)</option>
               <option>其他</option>
             </select>
+            {/* 🆕 當選擇「其他」時顯示輸入框 */}
+            {formData.preservationMethod === '其他' && (
+              <input
+                type="text"
+                name="preservationMethodOther"
+                value={formData.preservationMethodOther}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 mt-2"
+                placeholder="請說明保存方式"
+              />
+            )}            
           </div>
 <div>
   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -3527,8 +4596,20 @@ const renderStep2 = () => {
               <option>Rat</option>
               <option>其他</option>
             </select>
+            {/* 🆕 當選擇「其他」時顯示輸入框 */}
+            {formData.species === '其他' && (
+              <input
+                type="text"
+                name="speciesOther"
+                value={formData.speciesOther}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 mt-2"
+                placeholder="請輸入物種名稱（例：Zebrafish、Pig）"
+              />
+            )}            
           </div>
-          <div>
+   
+           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               寄送方式 <span className="text-red-600">*</span>
             </label>
@@ -3543,6 +4624,17 @@ const renderStep2 = () => {
               <option>常溫</option>
               <option>其他</option>
             </select>
+            {/* 🆕 當選擇「其他」時顯示輸入框 */}
+            {formData.shippingMethod === '其他' && (
+              <input
+                type="text"
+                name="shippingMethodOther"
+                value={formData.shippingMethodOther}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 mt-2"
+                placeholder="請說明寄送方式"
+              />
+            )}            
           </div>
         </div>
 
@@ -3565,71 +4657,71 @@ const renderStep2 = () => {
 };
 
   // 渲染步驟4：簽名確認
-  const renderStep4 = () => (
-    <div className="space-y-6">
-      <div className="border-2 border-purple-300 rounded-lg p-6 bg-purple-50">
-        <h3 className="text-xl font-bold text-gray-800 mb-6">委託人簽名確認</h3>
-        <div className="bg-white rounded-lg p-6 border-2 border-gray-200">
-          {!formData.signature ? (
-            <div className="text-center py-8">
-              <div className="mb-4">
-                <Edit3 size={48} className="mx-auto text-blue-600" />
-              </div>
-              <p className="text-gray-700 mb-2 font-medium">請簽名確認訂單內容無誤</p>
-              <p className="text-sm text-gray-500 mb-6">
-                支援手寫簽名 ✍️ 或上傳圖片 📤
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowSignaturePad(true)}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                <Edit3 size={20} />
-                開始簽名
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-green-600 font-semibold flex items-center gap-2">
-                  <Check size={24} />
-                  已完成簽名
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowSignaturePad(true)}
-                    className="px-4 py-2 text-sm border-2 border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50"
-                  >
-                    重新簽名
-                  </button>
-                  <button
-                    type="button"
-                    onClick={clearSignature}
-                    className="px-4 py-2 text-sm text-red-600 border-2 border-red-300 rounded-lg hover:bg-red-50"
-                  >
-                    清除簽名
-                  </button>
-                </div>
-              </div>
-              <div className="border-2 border-gray-300 rounded-lg p-4">
-                <img 
-                  src={formData.signature} 
-                  alt="委託人簽名" 
-                  className="max-w-full h-auto mx-auto"
-                  style={{ maxHeight: '150px' }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  // const renderStep4 = () => (
+  //   <div className="space-y-6">
+  //     <div className="border-2 border-purple-300 rounded-lg p-6 bg-purple-50">
+  //       <h3 className="text-xl font-bold text-gray-800 mb-6">委託人簽名確認</h3>
+  //       <div className="bg-white rounded-lg p-6 border-2 border-gray-200">
+  //         {!formData.signature ? (
+  //           <div className="text-center py-8">
+  //             <div className="mb-4">
+  //               <Edit3 size={48} className="mx-auto text-blue-600" />
+  //             </div>
+  //             <p className="text-gray-700 mb-2 font-medium">請簽名確認訂單內容無誤</p>
+  //             <p className="text-sm text-gray-500 mb-6">
+  //               支援手寫簽名 ✍️ 或上傳圖片 📤
+  //             </p>
+  //             <button
+  //               type="button"
+  //               // onClick={() => setShowSignaturePad(true)}
+  //               className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+  //             >
+  //               <Edit3 size={20} />
+  //               開始簽名
+  //             </button>
+  //           </div>
+  //         ) : (
+  //           <div className="space-y-4">
+  //             <div className="flex items-center justify-between">
+  //               <p className="text-green-600 font-semibold flex items-center gap-2">
+  //                 <Check size={24} />
+  //                 已完成簽名
+  //               </p>
+  //               <div className="flex gap-2">
+  //                 <button
+  //                   type="button"
+  //                   // onClick={() => setShowSignaturePad(true)}
+  //                   className="px-4 py-2 text-sm border-2 border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50"
+  //                 >
+  //                   重新簽名
+  //                 </button>
+  //                 <button
+  //                   type="button"
+  //                   onClick={clearSignature}
+  //                   className="px-4 py-2 text-sm text-red-600 border-2 border-red-300 rounded-lg hover:bg-red-50"
+  //                 >
+  //                   清除簽名
+  //                 </button>
+  //               </div>
+  //             </div>
+  //             <div className="border-2 border-gray-300 rounded-lg p-4">
+  //               <img 
+  //                 src={formData.signature} 
+  //                 alt="委託人簽名" 
+  //                 className="max-w-full h-auto mx-auto"
+  //                 style={{ maxHeight: '150px' }}
+  //               />
+  //             </div>
+  //           </div>
+  //         )}
+  //       </div>
+  //     </div>
+  //   </div>
+  // );
 
   // 渲染步驟5：預覽與提交
 // 渲染步驟5：預覽與提交
-const renderStep5 = () => (
+const renderStep4 = () => (
   <div className="space-y-6">
     <div className="border-2 border-indigo-300 rounded-lg p-6 bg-indigo-50">
       <h3 className="text-xl font-bold text-gray-800 mb-6">訂單預覽</h3>
@@ -3942,7 +5034,7 @@ const renderStep5 = () => (
         </div>
 
         {/* 7. 簽名確認 */}
-        <div>
+        {/* <div>
           <h4 className="font-semibold text-gray-700 mb-3 text-lg">✍️ 簽名確認</h4>
           {formData.signature ? (
             <div className="border-2 border-green-300 rounded-lg p-4 bg-green-50">
@@ -3963,7 +5055,7 @@ const renderStep5 = () => (
               <span className="text-red-600 font-semibold">尚未簽名</span>
             </div>
           )}
-        </div>
+        </div> */}
 
       </div>
 
@@ -3979,7 +5071,7 @@ const renderStep5 = () => (
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8 px-4">
-      <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-2xl p-8">
+      <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-2xl p-8">
         {/* 標題 */}
         <div className="text-center mb-8 border-b pb-6">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -3992,7 +5084,7 @@ const renderStep5 = () => (
         </div>
 
         {/* 步驟進度條 */}
-        <StepIndicator currentStep={currentStep} steps={steps} />
+        <StepIndicator currentStep={currentStep} steps={steps} isLocked={isLocked}/>
 
         {/* 表單內容 */}
         <div className="min-h-[500px]">
@@ -4001,19 +5093,27 @@ const renderStep5 = () => (
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
           {currentStep === 4 && renderStep4()}
-          {currentStep === 5 && renderStep5()}
+          {/* {currentStep === 5 && renderStep5()} */}
         </div>
 
         {/* 導航按鈕 */}
         <div className="flex justify-between items-center mt-8 pt-6 border-t">
           <button
-            onClick={prevStep}
-            disabled={currentStep === 0} 
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition ${
-              currentStep === 0 /* 🆕 改為 0 */
+            onClick={() => {
+              if (isLocked) {
+                setMessage('⚠️ 此訂單已提交並鎖定，無法再切換步驟');
+                return;
+              }
+              prevStep();
+            }}
+            disabled={currentStep === 0 || isLocked}
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition 
+              ${currentStep === 0
                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-gray-500 text-white hover:bg-gray-600'
-            }`}
+                : isLocked
+                ? 'bg-gray-400 text-white cursor-not-allowed'   // 🔒 鎖定狀態
+                : 'bg-gray-500 text-white hover:bg-gray-600'    // ✅ 正常狀態
+              }`}
           >
             <ChevronLeft size={20} />
             上一步
@@ -4032,13 +5132,18 @@ const renderStep5 = () => (
               <ChevronRight size={20} />
             </button>
           ) : (
-            <button
-              onClick={handleSubmit}
-              className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition"
-            >
-              <Send size={20} />
-              提交訂單
-            </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isLocked}
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition 
+              ${isLocked 
+                ? 'bg-gray-400 text-white cursor-not-allowed'   // 🔒 鎖定狀態
+                : 'bg-green-600 hover:bg-green-700 text-white'} // ✅ 正常狀態
+            `}
+          >
+            <Send size={20} />
+            {isLocked ? '需求已提交' : '提交需求'}
+          </button>
           )}
         </div>
 
@@ -4067,13 +5172,20 @@ const renderStep5 = () => (
       </div>
 
       {/* 簽名板彈窗 */}
-      {showSignaturePad && (
+      {/* {showSignaturePad && (
         <SignaturePad
           title="委託人簽名確認"
           onSave={handleSignatureSave}
           onCancel={handleSignatureCancel}
         />
-      )}
+      )} */}
+
+      <footer className="mt-10 text-center text-gray-600 text-sm py-6 border-t">
+        <p className="font-semibold text-gray-700">台基盟生技股份有限公司 | Taiwan Genome Industry Alliance Inc.</p>
+        <p>tgia_ngs@tgiainc.com ｜ 03 667 0079</p>
+        <p>地址：02新竹縣竹北市生醫五路66號8樓-6</p>
+        <p className="text-xs text-gray-500 mt-2">© 2025 TGIA Inc. All rights reserved.</p>
+      </footer>  
     </div>
   );
 };

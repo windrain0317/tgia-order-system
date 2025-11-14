@@ -19,6 +19,8 @@ if (!fs.existsSync(ordersDir)) {
   fs.mkdirSync(ordersDir, { recursive: true });
 }
 
+
+
 // ⭐⭐⭐ 新增：複製行格式的輔助函數 ⭐⭐⭐
 function copyRowStyle(worksheet, sourceRow, targetRow, startCol, endCol) {
   for (let col = startCol; col <= endCol; col++) {
@@ -49,6 +51,16 @@ function copyRowStyle(worksheet, sourceRow, targetRow, startCol, endCol) {
     }
   }
 }
+
+// 插入新列並複製樣式
+function insertRowWithStyle(worksheet, templateRow, targetRow, startCol, endCol) {
+  // 1) 先插入一列（空的）
+  worksheet.insertRow(targetRow, []);
+
+  // 2) 再把模板列的樣式複製過去
+  copyRowStyle(worksheet, templateRow, targetRow, startCol, endCol);
+}
+
 
 app.post('/api/orders', (req, res) => {
   try {
@@ -126,83 +138,98 @@ app.get('/api/orders/:orderId/export', async (req, res) => {
     // ⭐⭐⭐ 服務品項（修正版：自動複製格式）⭐⭐⭐
     // ⭐⭐⭐ 服務品項（修正版：加入序號）⭐⭐s⭐
     const serviceTemplateRow = 22;
-    let rowIdx = serviceTemplateRow;
-    let serviceIndex = 1;  // ⭐ 新增：序號計數器
+    let currentRow = serviceTemplateRow;
+    let serviceIndex = 1;
 
     orderData.serviceItems.forEach((item) => {
-      item.services.forEach((service, idx) => {
+      item.services.forEach((service) => {
         if (service.service) {
-          // 如果不是第一行，複製模板行格式
-          if (idx > 0 || rowIdx > serviceTemplateRow) {
-            copyRowStyle(sheet1, serviceTemplateRow, rowIdx, 1, 3);  // ⭐ 改成從 A 欄開始
+          if (serviceIndex === 1) {
+            // 第一筆：直接用模板列
+            // 不插入，只填值
+          } else {
+            // 之後的每一筆：在 currentRow 下插入新列 + 複製樣式
+            const targetRow = currentRow + 1;
+            insertRowWithStyle(sheet1, serviceTemplateRow, targetRow, 1, 3);
+            currentRow = targetRow;
           }
-          
-          sheet1.getCell(`A${rowIdx}`).value = serviceIndex;  // ⭐ 新增：寫入序號
-          sheet1.getCell(`B${rowIdx}`).value = service.service;
-          sheet1.getCell(`C${rowIdx}`).value = parseInt(service.quantity) || 0;
-          
-          serviceIndex++;  // ⭐ 序號遞增
-          rowIdx++;
+
+          sheet1.getCell(`A${currentRow}`).value = serviceIndex;
+          sheet1.getCell(`B${currentRow}`).value = service.service;
+          sheet1.getCell(`C${currentRow}`).value = parseInt(service.quantity) || 0;
+
+          serviceIndex++;
         }
       });
-    });
+    }); // 👈 這邊一定要有
 
-console.log(`✅ 服務品項已寫入 ${serviceIndex - 1} 行`);
-    
-    console.log(`✅ 服務品項已寫入 ${rowIdx - serviceTemplateRow} 行`);
-    
+    console.log(`✅ 服務品項已寫入 ${serviceIndex - 1} 行`);
+    const serviceRows = serviceIndex - 1;              // 真實服務筆數
+    const extraRows = serviceRows > 0 ? serviceRows - 1 : 0;  // 多插入的列數  
+
+    const rowSampleType     = 29 + extraRows;  // 樣本類型 / 保存方式
+    const rowSampleCount    = 31 + extraRows;  // 樣本數 / 物種
+    const rowSampleReturn   = 33 + extraRows;  // 是否退樣 / 運送方式
+    const rowNotes          = 34 + extraRows;  // 備註    
+
     let sampleTypeValue = orderData.sampleType || '';
     if (sampleTypeValue === '其他' && orderData.sampleTypeOther) {
       sampleTypeValue = orderData.sampleTypeOther;
     }
-    if (sampleTypeValue) sheet1.getCell('B29').value = sampleTypeValue;
-    
+    if (sampleTypeValue) sheet1.getCell(`B${rowSampleType}`).value = sampleTypeValue;
+
     let preservationValue = orderData.preservationMethod || '';
     if (preservationValue === '其他' && orderData.preservationMethodOther) {
-      preservationValue = orderData.preservationMethodOther;
+      preservationValue = preservationValue.sampleTypeOther;
     }
-    if (preservationValue) sheet1.getCell('F29').value = preservationValue;
-    
-    if (orderData.sampleCount) sheet1.getCell('B31').value = parseInt(orderData.sampleCount);
-    
+    if (preservationValue) sheet1.getCell(`F${rowSampleType}`).value = preservationValue;
+
+    if (orderData.sampleCount) {
+      sheet1.getCell(`B${rowSampleCount}`).value = parseInt(orderData.sampleCount);
+    }
+
     let speciesValue = orderData.species || '';
     if (speciesValue === '其他' && orderData.speciesOther) {
       speciesValue = orderData.speciesOther;
     }
-    if (speciesValue) sheet1.getCell('D31').value = speciesValue;
-    
-    if (orderData.sampleReturn) sheet1.getCell('B33').value = orderData.sampleReturn;
-    
+    if (speciesValue) sheet1.getCell(`D${rowSampleCount}`).value = speciesValue;
+
+    if (orderData.sampleReturn) {
+      sheet1.getCell(`B${rowSampleReturn}`).value = orderData.sampleReturn;
+    }
+
     let shippingValue = orderData.shippingMethod || '';
     if (shippingValue === '其他' && orderData.shippingMethodOther) {
       shippingValue = orderData.shippingMethodOther;
     }
-    if (shippingValue) sheet1.getCell('F33').value = shippingValue;
-    
-    if (orderData.notes) sheet1.getCell('B34').value = orderData.notes;
-    
-    // 簽名插入
-    if (orderData.signature) {
-      try {
-        const base64Data = orderData.signature.replace(/^data:image\/\w+;base64,/, '');
-        const imageBuffer = Buffer.from(base64Data, 'base64');
-        
-        const imageId = workbook.addImage({
-          buffer: imageBuffer,
-          extension: 'png',
-        });
-        
-        sheet1.addImage(imageId, {
-          tl: { col: 1, row: 36 },
-          br: { col: 3.5, row: 39 },
-          editAs: 'oneCell'
-        });
-        
-        console.log('✅ 簽名圖片已插入');
-      } catch (imgError) {
-        console.error('❌ 簽名圖片插入失敗:', imgError);
-      }
+    if (shippingValue) sheet1.getCell(`F${rowSampleReturn}`).value = shippingValue;
+
+    if (orderData.notes) {
+      sheet1.getCell(`B${rowNotes}`).value = orderData.notes;
     }
+    
+    // // 簽名插入
+    // if (orderData.signature) {
+    //   try {
+    //     const base64Data = orderData.signature.replace(/^data:image\/\w+;base64,/, '');
+    //     const imageBuffer = Buffer.from(base64Data, 'base64');
+        
+    //     const imageId = workbook.addImage({
+    //       buffer: imageBuffer,
+    //       extension: 'png',
+    //     });
+        
+    //     sheet1.addImage(imageId, {
+    //       tl: { col: 1, row: 36 },
+    //       br: { col: 3.5, row: 39 },
+    //       editAs: 'oneCell'
+    //     });
+        
+    //     console.log('✅ 簽名圖片已插入');
+    //   } catch (imgError) {
+    //     console.error('❌ 簽名圖片插入失敗:', imgError);
+    //   }
+    // }
     
     // ============ 填入對應的樣本工作表 ============
     
@@ -225,27 +252,29 @@ console.log(`✅ 服務品項已寫入 ${serviceIndex - 1} 行`);
       // ⭐⭐⭐ Library Sample Sheet（第一個表格）⭐⭐⭐
       if (orderData.libraryInfo && orderData.libraryInfo.sampleSheet) {
         const sampleSheetTemplateRow = 12;
-        
+        let currentRow = sampleSheetTemplateRow;
+
         orderData.libraryInfo.sampleSheet.forEach((row, idx) => {
-          if (row.sampleName) {
-            const r = sampleSheetTemplateRow + idx;
-            
-            // 如果不是第一行，複製格式
-            if (idx > 0) {
-              copyRowStyle(sheet3, sampleSheetTemplateRow, r, 1, 9);  // ⭐ 改成從 A 欄開始
-            }
-            
-            sheet3.getCell(`A${r}`).value = idx + 1;  // ⭐ 新增：寫入序號
-            sheet3.getCell(`B${r}`).value = row.sampleName;
-            if (row.tubeLabel) sheet3.getCell(`C${r}`).value = row.tubeLabel;
-            if (row.conc) sheet3.getCell(`E${r}`).value = row.conc;
-            if (row.vol) sheet3.getCell(`F${r}`).value = row.vol;
-            if (row.ngsConc) sheet3.getCell(`G${r}`).value = row.ngsConc;
-            if (row.expectedSeq) sheet3.getCell(`H${r}`).value = row.expectedSeq;
-            if (row.note) sheet3.getCell(`I${r}`).value = row.note;
+          if (!row.sampleName) return;
+
+          if (idx === 0) {
+            // 用模板行
+          } else {
+            const targetRow = currentRow + 1;
+            insertRowWithStyle(sheet3, sampleSheetTemplateRow, targetRow, 1, 9);
+            currentRow = targetRow;
           }
+
+          sheet3.getCell(`A${currentRow}`).value = idx + 1;
+          sheet3.getCell(`B${currentRow}`).value = row.sampleName;
+          if (row.tubeLabel) sheet3.getCell(`C${currentRow}`).value = row.tubeLabel;
+          if (row.conc) sheet3.getCell(`E${currentRow}`).value = row.conc;
+          if (row.vol) sheet3.getCell(`F${currentRow}`).value = row.vol;
+          if (row.ngsConc) sheet3.getCell(`G${currentRow}`).value = row.ngsConc;
+          if (row.expectedSeq) sheet3.getCell(`H${currentRow}`).value = row.expectedSeq;
+          if (row.note) sheet3.getCell(`I${currentRow}`).value = row.note;
         });
-        
+
         console.log(`✅ Library Sample Sheet 已寫入 ${orderData.libraryInfo.sampleSheet.length} 行`);
       }
             
@@ -259,7 +288,6 @@ console.log(`✅ 服務品項已寫入 ${serviceIndex - 1} 行`);
       
       // ⭐⭐⭐ Library Sample Sheet（第二個表格）⭐⭐⭐
       if (orderData.libraryInfo && orderData.libraryInfo.librarySampleSheet) {
-        // const librarySampleSheetTemplateRow = 40;
         let librarySampleSheetTemplateRow = null;        
         
         sheet3.eachRow((row, rowNumber) => {
@@ -274,26 +302,31 @@ console.log(`✅ 服務品項已寫入 ${serviceIndex - 1} 行`);
         if (!librarySampleSheetTemplateRow) {
           console.warn('⚠️ 未找到 "5. Library Sample Sheet" 標題，使用預設行號 40');
           librarySampleSheetTemplateRow = 40;
-        }        
+        }
+
+        // 🆕 使用插入 + 複製樣式的方式
+        let currentRow = librarySampleSheetTemplateRow;
+
         orderData.libraryInfo.librarySampleSheet.forEach((row, idx) => {
-          if (row.sampleName) {
-            const r = librarySampleSheetTemplateRow + idx;
-            
-            // 如果不是第一行，複製格式
-            if (idx > 0) {
-              copyRowStyle(sheet3, librarySampleSheetTemplateRow, r, 1, 10);  // ⭐ 改成從 A 欄開始
-            }
-            
-            sheet3.getCell(`A${r}`).value = idx + 1;  // ⭐ 新增：寫入序號
-            sheet3.getCell(`B${r}`).value = row.sampleName;
-            if (row.libraryPrepKit) sheet3.getCell(`C${r}`).value = row.libraryPrepKit;
-            if (row.indexAdapterKit) sheet3.getCell(`E${r}`).value = row.indexAdapterKit;
-            if (row.setWellPosition) sheet3.getCell(`F${r}`).value = row.setWellPosition;
-            if (row.index1Seq) sheet3.getCell(`G${r}`).value = row.index1Seq;
-            if (row.index2Seq) sheet3.getCell(`H${r}`).value = row.index2Seq;
-            if (row.note) sheet3.getCell(`I${r}`).value = row.note;
-            if (row.library) sheet3.getCell(`J${r}`).value = row.library;
+          if (!row.sampleName) return;
+
+          if (idx === 0) {
+            // 第一列：用模板本身
+          } else {
+            const targetRow = currentRow + 1;
+            insertRowWithStyle(sheet3, librarySampleSheetTemplateRow, targetRow, 1, 10);
+            currentRow = targetRow;
           }
+          
+          sheet3.getCell(`A${currentRow}`).value = idx + 1;
+          sheet3.getCell(`B${currentRow}`).value = row.sampleName;
+          if (row.libraryPrepKit) sheet3.getCell(`C${currentRow}`).value = row.libraryPrepKit;
+          if (row.indexAdapterKit) sheet3.getCell(`E${currentRow}`).value = row.indexAdapterKit;
+          if (row.setWellPosition) sheet3.getCell(`F${currentRow}`).value = row.setWellPosition;
+          if (row.index1Seq) sheet3.getCell(`G${currentRow}`).value = row.index1Seq;
+          if (row.index2Seq) sheet3.getCell(`H${currentRow}`).value = row.index2Seq;
+          if (row.note) sheet3.getCell(`I${currentRow}`).value = row.note;
+          if (row.library) sheet3.getCell(`J${currentRow}`).value = row.library;
         });
         
         console.log(`✅ Library Sample Sheet (第二表) 已寫入 ${orderData.libraryInfo.librarySampleSheet.length} 行`);
@@ -318,31 +351,33 @@ console.log(`✅ 服務品項已寫入 ${serviceIndex - 1} 行`);
       // ⭐⭐⭐ Sample Sheet（DNA/RNA/Cell/Blood）⭐⭐⭐
       if (orderData.sampleInfo && orderData.sampleInfo.sampleSheet) {
         const sampleSheetTemplateRow = 12;
-        
+        let currentRow = sampleSheetTemplateRow;
+
         orderData.sampleInfo.sampleSheet.forEach((row, idx) => {
-          if (row.sampleName) {
-            const r = sampleSheetTemplateRow + idx;
-            
-            // 如果不是第一行，複製格式
-            if (idx > 0) {
-              copyRowStyle(sheet2, sampleSheetTemplateRow, r, 1, 10);  // ⭐ 改成從 A 欄開始
-            }
-            
-            sheet2.getCell(`A${r}`).value = idx + 1;  // ⭐ 新增：寫入序號
-            sheet2.getCell(`B${r}`).value = row.sampleName;
-            if (row.tubeLabel) sheet2.getCell(`C${r}`).value = row.tubeLabel;
-            if (row.expectedSeq) sheet2.getCell(`D${r}`).value = row.expectedSeq;
-            if (row.conc) sheet2.getCell(`E${r}`).value = row.conc;
-            if (row.vol) sheet2.getCell(`F${r}`).value = row.vol;
-            if (row.ratio260280) sheet2.getCell(`G${r}`).value = row.ratio260280;
-            if (row.ratio260230) sheet2.getCell(`H${r}`).value = row.ratio260230;
-            if (row.dqnRqn) sheet2.getCell(`I${r}`).value = row.dqnRqn;
-            if (row.note) sheet2.getCell(`J${r}`).value = row.note;
+          if (!row.sampleName) return;
+
+          if (idx === 0) {
+            // 第一列：直接用模板
+          } else {
+            const targetRow = currentRow + 1;
+            insertRowWithStyle(sheet2, sampleSheetTemplateRow, targetRow, 1, 10);
+            currentRow = targetRow;
           }
+
+          sheet2.getCell(`A${currentRow}`).value = idx + 1;
+          sheet2.getCell(`B${currentRow}`).value = row.sampleName;
+          if (row.tubeLabel) sheet2.getCell(`C${currentRow}`).value = row.tubeLabel;
+          if (row.expectedSeq) sheet2.getCell(`D${currentRow}`).value = row.expectedSeq;
+          if (row.conc) sheet2.getCell(`E${currentRow}`).value = row.conc;
+          if (row.vol) sheet2.getCell(`F${currentRow}`).value = row.vol;
+          if (row.ratio260280) sheet2.getCell(`G${currentRow}`).value = row.ratio260280;
+          if (row.ratio260230) sheet2.getCell(`H${currentRow}`).value = row.ratio260230;
+          if (row.dqnRqn) sheet2.getCell(`I${currentRow}`).value = row.dqnRqn;
+          if (row.note) sheet2.getCell(`J${currentRow}`).value = row.note;
         });
-        
+
         console.log(`✅ Sample Sheet 已寫入 ${orderData.sampleInfo.sampleSheet.length} 行`);
-}
+      }
       
       if (orderData.sampleInfo && orderData.sampleInfo.runConfig) {
         const config = orderData.sampleInfo.runConfig;
