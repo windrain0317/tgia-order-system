@@ -1,28 +1,24 @@
 {
   "定序服務 (S)": [
     { 
-      "value": "S-0000 無定序", 
-      "description": "不進行定序服務" 
-    },
-    { 
       "value": "S-G000 二代定序 - 定序量購買", 
-      "description": "依實際需求購買定序數據量，彈性計價" 
+      "description": "定序數據量購買，最低定序量 5 GB" 
     },
     { 
       "value": "S-LN01 二代定序 - NoveSeq 6000, S4 包Lane 定序", 
-      "description": "NovaSeq 6000 平台，S4 flowcell，約 2-2.5B reads per lane，適合中大型專案" 
+      "description": "NovaSeq 6000 平台，S4 flowcell，約 600~700 GBases per lane (2x150 cycles)" 
     },
     { 
       "value": "S-LN02 二代定序 - NovaSeq X Plus, 10B 包Lane 定序", 
-      "description": "NovaSeq X Plus 平台，10B reads per lane，高通量定序" 
+      "description": "NovaSeq X Plus 平台，10B flowcell，約 300~400 GBases per lane(2x150 cycles)" 
     },
     { 
       "value": "S-LN03 二代定序 - NovaSeq X Plus, 25B 包Lane 定序", 
-      "description": "NovaSeq X Plus 平台，25B reads per lane，超高通量定序" 
+      "description": "NovaSeq X Plus 平台，10B flowcell，約 900~1000 GBases per lane(2x150 cycles)" 
     },
     { 
       "value": "S-FC01 二代定序 - NoveSeq 6000, SP 包Run 定序", 
-      "description": "NovaSeq 6000 平台，SP flowcell 整片定序，約 800M-1.3B reads" 
+      "description": "NovaSeq 6000 平台，SP flowcell 包片定序，約 200~250 Gb per run (2x150 cycle)" 
     },
     { 
       "value": "S-FC02 二代定序 - NovaSeq X Plus, 1.5B (100cycle) 包 Run 定序", 
@@ -101,16 +97,17 @@
     { "value": "L-OS05 10x - Visium HD, Human Transcriptome, 6.5 mm", "description": "10x Visium HD 空間轉錄體，人類，6.5mm 捕獲區" }
   ],
   "分析服務 (A)": [
-    { "value": "A101 1st - Non (不分析)", "description": "不進行生資分析" },
-    { "value": "A102 1st - Fastq", "description": "產出 Fastq 原始檔案" },
-    { "value": "A103 1st - BCL", "description": "產出 BCL 原始檔案" },
-    { "value": "A104 1st - UMI", "description": "UMI 去重複分析" },
-    { "value": "A202 2nd - DRAGEN-Germline-XP", "description": "DRAGEN 加速運算平台，體細胞變異分析" },
-    { "value": "A203 2nd - DRAGEN-Somatic-XP", "description": "DRAGEN 加速運算平台，體細胞突變分析" },
-    { "value": "A204 2nd - RNAseq-Basic", "description": "RNA-Seq 基礎分析：比對、定量、QC" },
-    { "value": "A205 2nd - RNAseq-Advanced", "description": "RNA-Seq 進階分析：差異表現、GO/KEGG" },
-    { "value": "A206 2nd - TSO500-Tissue", "description": "TSO500 組織樣本分析報告" },
-    { "value": "A207 2nd - TSO500-ctDNA", "description": "TSO500 ctDNA 樣本分析報告" },
+    { "value": "A100 1st - BCL", "description": "定序儀下機原始資料(BCL)" },
+    { "value": "A101 1st - Fastq", "description": "FASTQ檔案"},
+    { "value": "A102 1st - UMI Tagged FASTQ", "description": "產出 Fastq 原始檔案" },
+    { "value": "A201 2nd - DRAGEN-Germline", "description": "DRAGEN 加速運算平台，體細胞變異分析" },
+    { "value": "A202 2nd - DRAGEN-Somatic", "description": "DRAGEN 加速運算平台，體細胞突變分析" },
+    { "value": "A203 2nd - RNAseq-Basic", "description": "基礎 RNA-seq 分析。產出 QC 報表、序列比對結果與量化結果（TPM/FPKM）。詳細交付結果可以參閱「RNAseq 範例報告」。" },
+    { "value": "A204 2nd - RNAseq-Advanced", "description": "進階 RNA-seq 分析。產出 QC 報表、序列比對結果與量化結果（TPM/FPKM）以外，會進行 R 分析與視覺化，包含差異表達分析、ORA（GO/KEGG）分析、GSEA（GO/KEGG）分析，與 PPI 分析。最終產出 HTML 報告方便客戶閱讀。詳細交付結果可以參閱「RNAseq 範例報告」。" },
+    { "value": "A251 2nd - RNAseq-Basic-Customized", "description": "客製化 RNA-seq 分析：RNAseq-Basic pipeline 加上客製化處理（支援可執行的非模式物種，也可進行更彈性化的 R 分析來找出差異表達基因，包含「子集分析」、「雙軌分析」、「Pairwise 多重比較法」，與「多時序分析（LRT）」。此外也支援圖片修改與富集分析的「自定義資料集」。詳細交付結果可以參閱「RNAseq 範例報告」。）" },
+    { "value": "A252 2nd - RNAseq-Advanced-Customized", "description": "客製化 RNA-seq 分析：RNAseq-Advanced pipeline 加上客製化處理（支援可執行的非模式物種，也可進行更彈性化的 R 分析來找出差異表達基因，包含「子集分析」、「雙軌分析」、「Pairwise 多重比較法」，與「多時序分析（LRT）」。此外也支援圖片修改與富集分析的「自定義資料集」。詳細交付結果可以參閱「RNAseq 範例報告」。）" },
+    { "value": "A206 2nd - TSO500-Tissue", "description": "TSO500 組織樣本分析，" },
+    { "value": "A207 2nd - TSO500-ctDNA", "description": "TSO500 ctDNA 樣本分析，" },
     { "value": "A208 2nd - miRNA", "description": "miRNA 定序分析：比對、定量、目標基因預測" },
     { "value": "A209 2nd - ChIPseq", "description": "ChIP-Seq 分析：peak calling、motif 分析" },
     { "value": "A210 2nd - CellRanger", "description": "10x Genomics Cell Ranger 標準分析" },
@@ -140,13 +137,26 @@
     { "value": "A316 3rd - HLAtyping", "description": "HLA 分型分析" }
   ],
   "套組產品 (AP)": [
-    { "value": "台基安WGS包套1", "description": "WGS 基礎套組：萃取 + QC + 建庫 + 定序" },
-    { "value": "台基安WGS包套2", "description": "WGS 進階套組：包套1 + 基礎生資分析" },
-    { "value": "台基安WGS包套3", "description": "WGS 完整套組：包套2 + 變異註解報告" },
-    { "value": "台基安WES包套1", "description": "WES 基礎套組：萃取 + QC + 建庫 + 定序" },
-    { "value": "台基安WES包套2", "description": "WES 進階套組：包套1 + 基礎生資分析" },
-    { "value": "台基安WES包套3", "description": "WES 完整套組：包套2 + 變異註解報告" },
-    { "value": "RNAseq-Basic包套", "description": "RNA-Seq 基礎套組：萃取 + QC + 建庫 + 定序 + 基礎分析" },
-    { "value": "RNAseq-Advanced包套", "description": "RNA-Seq 進階套組：基礎包套 + 差異表現分析 + 功能註解" }
+    { "value": "台基安WGS", 
+      "description": "台積安WGS服務內容包含：\n1) DNA萃取+QC\n2) Illumina, Illumina DNA PCR-Free Prep 建庫\n3) 二代定序 (90GB)\n4) Dragen Germline分析\n5) Geneyx 臨床報告  ",
+      "binding": {
+        "sampleType": "DNA",  
+        "seqAmountGb": 90     
+      }
+    },
+    { "value": "台基安WES", 
+      "description": "台積安WGS服務內容包含：\n1) DNA萃取+QC\n2) Roche, KAPA HyperPlus V1 + mit 建庫\n3) 二代定序 (9GB)\n4) Dragen Germline分析\n5) Geneyx 臨床報告  ",
+      "binding": {
+        "sampleType": "DNA",  
+        "seqAmountGb": 9     
+      }
+    },
+    { "value": "Bulk RNA-Seq Expression Profiling(含萃取)", 
+      "description": "Bulk RNA-Seq Expression Profiling 內容包含：\n1) RNA萃取+QC\n2) Illumina, Illumina Stranded mRNA 建庫\n3) 二代定序 (6GB,20M Reads per sample)\n4) 進階 RNA-seq 分析\n 標準分析物種 (Human/Mus musculus/Rat/Zebrafish/Drosophilla) ",
+      "binding": {
+        "sampleType": ["RNA", "Tissue"],    
+        "seqAmountGb": 6     
+      }
+    }
   ]
 }
