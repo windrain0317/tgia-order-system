@@ -46,17 +46,135 @@
     { "value": "Q-QC06 Library QC(PacBio)", "description": "PacBio Library QC，含 SMRTbell 完整性檢測" }
   ],
   "萃取/QC (EQ)": [
-    { "value": "Q-ED01 DNA萃取+QC - 血液、Buffy coat DNA萃取", "description": "從全血或 Buffy coat 萃取基因體 DNA，含 QC" },
-    { "value": "Q-ED02 DNA萃取+QC - 細胞 DNA萃取", "description": "從培養細胞萃取基因體 DNA，含 QC" },
-    { "value": "Q-ED03 DNA萃取+QC - 組織 DNA萃取", "description": "從新鮮或冷凍組織萃取基因體 DNA，含 QC" },
-    { "value": "Q-ED04 DNA萃取+QC - 石蠟包埋 (FFPE) DNA萃取", "description": "從 FFPE 組織萃取 DNA，含 QC" },
-    { "value": "Q-ED05 DNA萃取+QC - 血清(漿) cfDNA萃取", "description": "從血漿或血清萃取游離 DNA (cfDNA)，含 QC" },
-    { "value": "Q-ER01A RNA萃取+QC - 血液 RNA萃取 (Tempus 採血管)", "description": "從 Tempus 採血管萃取 RNA，含 QC" },
-    { "value": "Q-ER01B RNA萃取+QC - 血液 RNA萃取 (PAXgene 採血管)", "description": "從 PAXgene 採血管萃取 RNA，含 QC" },
-    { "value": "Q-ER02 RNA萃取+QC - 細胞 RNA萃取", "description": "從培養細胞萃取 total RNA，含 QC" },
-    { "value": "Q-ER03 RNA萃取+QC - 組織 RNA萃取", "description": "從新鮮或冷凍組織萃取 total RNA，含 QC" },
-    { "value": "Q-ER04 RNA萃取+QC - 石蠟包埋 (FFPE) RNA萃取", "description": "從 FFPE 組織萃取 RNA，含 QC" },
-    { "value": "Q-ER05 RNA萃取+QC - 血清(漿) cfRNA萃取", "description": "從血漿或血清萃取游離 RNA (cfRNA)，含 QC" }
+    { 
+      "value": "Q-ED01 DNA萃取+QC - 血液、Buffy coat DNA萃取", 
+      "description": "從全血或 Buffy coat 萃取基因體 DNA，含 QC",
+      "binding": {
+        "libraryServices": [
+          "L-WG01 WGS - Illumina, Illumina DNA PCR-Free Prep 建庫",
+          "L-WG02 WMS - Illumina, Illumina DNA Prep 建庫",
+          "L-WE01 WES - Roche, KAPA HyperPlus V1 建庫",
+          "L-WE02 WES - Roche, KAPA HyperPlus V1 + mit 建庫"
+        ],
+        "defaultLibrary": "L-WG01 WGS - Illumina, Illumina DNA PCR-Free Prep 建庫"
+      }
+    },
+    { 
+      "value": "Q-ED02 DNA萃取+QC - 細胞 DNA萃取", 
+      "description": "從培養細胞萃取基因體 DNA，含 QC",
+      "binding": {
+        "libraryServices": [
+          "L-WG01 WGS - Illumina, Illumina DNA PCR-Free Prep 建庫",
+          "L-WG02 WMS - Illumina, Illumina DNA Prep 建庫",
+          "L-WG03 WGS - Roche, KAPA EvoPrep 建庫"
+        ],
+        "defaultLibrary": "L-WG02 WMS - Illumina, Illumina DNA Prep 建庫"
+      }
+    },
+    { 
+      "value": "Q-ED03 DNA萃取+QC - 組織 DNA萃取", 
+      "description": "從新鮮或冷凍組織萃取基因體 DNA，含 QC",
+      "binding": {
+        "libraryServices": [
+          "L-WG01 WGS - Illumina, Illumina DNA PCR-Free Prep 建庫",
+          "L-WG02 WMS - Illumina, Illumina DNA Prep 建庫",
+          "L-WE03 WES - Roche, KAPA HyperPlus V2 建庫"
+        ],
+        "defaultLibrary": "L-WG01 WGS - Illumina, Illumina DNA PCR-Free Prep 建庫"
+      }
+    },
+    { 
+      "value": "Q-ED04 DNA萃取+QC - 石蠟包埋 (FFPE) DNA萃取", 
+      "description": "從 FFPE 組織萃取 DNA，含 QC",
+      "binding": {
+        "libraryServices": [
+          "L-WG03 WGS - Roche, KAPA EvoPrep 建庫",
+          "L-WE04 WES - Roche, KAPA EvoPlus V2 建庫",
+          "L-WE05 WES - Roche, KAPA EvoPlus V2 + mit 建庫"
+        ],
+        "defaultLibrary": "L-WG03 WGS - Roche, KAPA EvoPrep 建庫"
+      }
+    },
+    { 
+      "value": "Q-ED05 DNA萃取+QC - 血清(漿) cfDNA萃取", 
+      "description": "從血漿或血清萃取游離 DNA (cfDNA)，含 QC",
+      "binding": {
+        "libraryServices": [
+          "L-WG02 WMS - Illumina, Illumina DNA Prep 建庫",
+          "L-TS03 TSO500 - Illumina, TSO500 ctDNA v2 建庫"
+        ],
+        "defaultLibrary": "L-WG02 WMS - Illumina, Illumina DNA Prep 建庫"
+      }
+    },
+    { 
+      "value": "Q-ER01A RNA萃取+QC - 血液 RNA萃取 (Tempus 採血管)", 
+      "description": "從 Tempus 採血管萃取 RNA，含 QC",
+      "binding": {
+        "libraryServices": [
+          "L-RN02 RNAseq - Illumina, Illumina Stranded Total RNA Prep, Ligation with Ribo-Zero Plus 建庫",
+          "L-RN01 RNAseq - Illumina, Illumina Stranded mRNA 建庫"
+        ],
+        "defaultLibrary": "L-RN02 RNAseq - Illumina, Illumina Stranded Total RNA Prep, Ligation with Ribo-Zero Plus 建庫"
+      }
+    },
+    { 
+      "value": "Q-ER01B RNA萃取+QC - 血液 RNA萃取 (PAXgene 採血管)", 
+      "description": "從 PAXgene 採血管萃取 RNA，含 QC",
+      "binding": {
+        "libraryServices": [
+          "L-RN02 RNAseq - Illumina, Illumina Stranded Total RNA Prep, Ligation with Ribo-Zero Plus 建庫",
+          "L-RN01 RNAseq - Illumina, Illumina Stranded mRNA 建庫"
+        ],
+        "defaultLibrary": "L-RN02 RNAseq - Illumina, Illumina Stranded Total RNA Prep, Ligation with Ribo-Zero Plus 建庫"
+      }
+    },
+    { 
+      "value": "Q-ER02 RNA萃取+QC - 細胞 RNA萃取", 
+      "description": "從培養細胞萃取 total RNA，含 QC",
+      "binding": {
+        "libraryServices": [
+          "L-RN01 RNAseq - Illumina, Illumina Stranded mRNA 建庫",
+          "L-RN02 RNAseq - Illumina, Illumina Stranded Total RNA Prep, Ligation with Ribo-Zero Plus 建庫",
+          "L-RN04 RNAseq - Roche, KAPA mRNA HyperPrep 建庫",
+          "L-RN05 RNAseq - Roche, KAPA RNA HyperPrep Kits with RiboErase (HMR) 建庫"
+        ],
+        "defaultLibrary": "L-RN01 RNAseq - Illumina, Illumina Stranded mRNA 建庫"
+      }
+    },
+    { 
+      "value": "Q-ER03 RNA萃取+QC - 組織 RNA萃取", 
+      "description": "從新鮮或冷凍組織萃取 total RNA，含 QC",
+      "binding": {
+        "libraryServices": [
+          "L-RN01 RNAseq - Illumina, Illumina Stranded mRNA 建庫",
+          "L-RN02 RNAseq - Illumina, Illumina Stranded Total RNA Prep, Ligation with Ribo-Zero Plus 建庫",
+          "L-RN05 RNAseq - Roche, KAPA RNA HyperPrep Kits with RiboErase (HMR) 建庫"
+        ],
+        "defaultLibrary": "L-RN01 RNAseq - Illumina, Illumina Stranded mRNA 建庫"
+      }
+    },
+    { 
+      "value": "Q-ER04 RNA萃取+QC - 石蠟包埋 (FFPE) RNA萃取", 
+      "description": "從 FFPE 組織萃取 RNA，含 QC",
+      "binding": {
+        "libraryServices": [
+          "L-RN02 RNAseq - Illumina, Illumina Stranded Total RNA Prep, Ligation with Ribo-Zero Plus 建庫",
+          "L-RN05 RNAseq - Roche, KAPA RNA HyperPrep Kits with RiboErase (HMR) 建庫"
+        ],
+        "defaultLibrary": "L-RN02 RNAseq - Illumina, Illumina Stranded Total RNA Prep, Ligation with Ribo-Zero Plus 建庫"
+      }
+    },
+    { 
+      "value": "Q-ER05 RNA萃取+QC - 血清(漿) cfRNA萃取", 
+      "description": "從血漿或血清萃取游離 RNA (cfRNA)，含 QC",
+      "binding": {
+        "libraryServices": [
+          "L-RN02 RNAseq - Illumina, Illumina Stranded Total RNA Prep, Ligation with Ribo-Zero Plus 建庫",
+          "L-RN08 RNAseq - QIAGEN, QIAseq miRNA Library Kit 建庫"
+        ],
+        "defaultLibrary": "L-RN02 RNAseq - Illumina, Illumina Stranded Total RNA Prep, Ligation with Ribo-Zero Plus 建庫"
+      }
+    }
   ],
   "建庫服務 (L)": [
     { "value": "L-TA01 TAF 認證 - WGS, Illumina DNA PCR-Free Prep 建庫 (人類 DNA)", "description": "TAF 認證全基因體定序建庫，PCR-free 流程，人類 DNA 專用" },
@@ -118,8 +236,6 @@
     { "value": "A215 2nd - PacBio-HumanWGS", "description": "PacBio 人類全基因體分析" },
     { "value": "A216 2nd - Transcriptome-de-novo", "description": "轉錄體從頭組裝分析" },
     { "value": "A217 2nd - ServiceHour", "description": "客製化分析服務（以小時計費）" },
-    { "value": "A218 2nd - DRAGEN-Germline-Server", "description": "DRAGEN Server 體細胞變異分析" },
-    { "value": "A219 2nd - DRAGEN-Somatic-Server", "description": "DRAGEN Server 體細胞突變分析" },
     { "value": "A302 3rd - Geneyx-Report", "description": "Geneyx 變異解讀報告" },
     { "value": "A303 3rd - Geneyx-Report&Annotation-Germline", "description": "Geneyx 報告 + 體細胞變異註解" },
     { "value": "A304 3rd - Geneyx-Account", "description": "Geneyx 平台使用帳號" },
@@ -140,22 +256,66 @@
     { "value": "台基安WGS", 
       "description": "台積安WGS服務內容包含：\n1) DNA萃取+QC\n2) Illumina, Illumina DNA PCR-Free Prep 建庫\n3) 二代定序 (90GB)\n4) Dragen Germline分析\n5) Geneyx 臨床報告  ",
       "binding": {
-        "sampleType": "DNA",  
-        "seqAmountGb": 90     
+        "sampleType":  ["DNA", "Blood"],  
+        "seqAmountGb": 90,
+        "preservationMethod": {
+          "allowed": ["EDTA Tube(Blood)","Nuclease-free H2O","Tris Buffer"],  
+          "default": "EDTA Tube(Blood)"                          
+        },
+        "species": "Human", 
+        "shippingMethod": {
+          "allowed": ["冷凍(乾冰)", "冷藏"],  
+          "default": "冷藏"
+        }             
       }
     },
+    { "value": "台基安WGS2", 
+      "description": "台積安WGS服務內容包含：\n1) DNA萃取+QC\n2) Illumina, Illumina DNA PCR-Free Prep 建庫\n3) 二代定序 (120B)\n4) Dragen Germline分析\n5)變異註解\\n6) Geneyx 臨床報告  ",
+      "binding": {
+        "sampleType":  ["DNA", "Blood"],  
+        "seqAmountGb": 120,
+        "preservationMethod": {
+          "allowed": ["EDTA Tube(Blood)","Nuclease-free H2O","Tris Buffer"],  
+          "default": "EDTA Tube(Blood)"                          
+        },
+        "species": "Human", 
+        "shippingMethod": {
+          "allowed": ["冷凍(乾冰)", "冷藏"],  
+          "default": "冷藏"
+        }             
+      }
+    },    
     { "value": "台基安WES", 
       "description": "台積安WGS服務內容包含：\n1) DNA萃取+QC\n2) Roche, KAPA HyperPlus V1 + mit 建庫\n3) 二代定序 (9GB)\n4) Dragen Germline分析\n5) Geneyx 臨床報告  ",
       "binding": {
-        "sampleType": "DNA",  
-        "seqAmountGb": 9     
+        "sampleType": ["DNA", "Blood"],  
+        "seqAmountGb": 9,
+        "preservationMethod": {
+          "allowed": ["EDTA Tube(Blood)","Nuclease-free H2O","Tris Buffer"],  
+          "default": "EDTA Tube(Blood)" 
+        },
+        "species": "Human",
+        "shippingMethod": {
+          "allowed": ["冷凍(乾冰)", "冷藏"],
+          "default": "冷藏"
+        }
+             
       }
     },
     { "value": "Bulk RNA-Seq Expression Profiling(含萃取)", 
       "description": "Bulk RNA-Seq Expression Profiling 內容包含：\n1) RNA萃取+QC\n2) Illumina, Illumina Stranded mRNA 建庫\n3) 二代定序 (6GB,20M Reads per sample)\n4) 進階 RNA-seq 分析\n 標準分析物種 (Human/Mus musculus/Rat/Zebrafish/Drosophilla) ",
       "binding": {
         "sampleType": ["RNA", "Tissue"],    
-        "seqAmountGb": 6     
+        "seqAmountGb": 6,
+        "preservationMethod": {
+          "allowed": ["Trizol", "Tempus Tube(Blood)"],  
+          "default": "Trizol"
+        },
+        "species": null,  
+        "shippingMethod": {
+          "allowed": ["冷凍(乾冰)"], 
+          "default": "冷凍(乾冰)"
+        }   
       }
     }
   ]

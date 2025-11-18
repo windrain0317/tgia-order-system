@@ -62,7 +62,14 @@
     "icon": "🧬",
     "extractionType": "RNA",
     "categories": ["萃取/QC (EQ)", "建庫服務 (L)", "定序服務 (S)", "分析服務 (A)"],
+    
     "serviceFilters": {
+      "定序服務 (S)": {
+        "allowedServices": [
+          "S-G000 二代定序 - 定序量購買"
+        ],
+        "description": "定序量購買"
+      },      
       "萃取/QC (EQ)": {
         "allowedServices": [
           "Q-ER01A RNA萃取+QC - 血液 RNA萃取 (Tempus 採血管)",
@@ -145,8 +152,8 @@
       },
       "分析服務 (A)": {
         "allowedServices": [
-          "A204 2nd - RNAseq-Basic",
-          "A205 2nd - RNAseq-Advanced",
+          "A203 2nd - RNAseq-Basic",
+          "A204 2nd - RNAseq-Advanced",
         "description",":", "RNA 分析"]
       }      
     },

@@ -1,36 +1,106 @@
- const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const ExcelJS = require('exceljs');
+const nodemailer = require('nodemailer');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
-
+const PORT = process.env.PORT || 3001;  // ✅ 使用環境變數當作port
 
 // ✅ CORS 配置（允許 Render 前端）
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:3000',
-    'https://tgia-order.onrender.com/'  // 前端 URL
+    'https://tgia-frontend.onrender.com'  // 前端 URL
   ],
   credentials: true
 }));
-
-app.use(bodyParser.json({ limit: '50mb' }));
-
 app.use(bodyParser.json({ limit: '50mb' }));
 
 const ordersDir = path.join(__dirname, 'orders');  // 使用當前目錄
 const templatesDir = path.join(__dirname, 'templates');
+const configDir = path.join(__dirname, 'config');  
 
 if (!fs.existsSync(ordersDir)) {
   fs.mkdirSync(ordersDir, { recursive: true });
 }
 
+if (!fs.existsSync(configDir)) {
+  fs.mkdirSync(configDir, { recursive: true });
+}
 
+
+// 讀取設定黨
+let emailConfig, salesConfig;
+
+try {
+  emailConfig = JSON.parse(
+    fs.readFileSync(path.join(configDir, 'email.config.json'), 'utf-8')
+  );
+  console.log('✅ email 設定已經載入');
+} catch (error) {
+  console.error('❌ 設定載入失敗:', error.message);
+  emailConfig = null;
+}
+
+try {
+  salesConfig = JSON.parse(
+    fs.readFileSync(path.join(configDir, 'sales.config.json'), 'utf-8')
+  );
+  console.log(`✅ 業務人員設定已經載入 (${salesConfig.length} 人)`);
+} catch (error) {
+  console.error('❌ 務人員設定無法載入:', error.message);
+  salesConfig = [];
+}
+
+
+let transporter = null;
+
+if (emailConfig && emailConfig.smtp) {
+  transporter = nodemailer.createTransport({
+    host: emailConfig.smtp.host,
+    port: emailConfig.smtp.port,
+    secure: emailConfig.smtp.secure,
+    auth: {
+      user: emailConfig.smtp.auth.user,
+      pass: emailConfig.smtp.auth.pass
+    }
+  });
+
+  // 測試
+  transporter.verify((error, success) => {
+    if (error) {
+      console.log('❌ Server連結失敗:', error.message);
+    } else {
+      console.log('✅ Server連結成功 (Office365)');
+    }
+  });
+} else {
+  console.log('⚠️ 郵件配置不完全，無法建立傳輸器');
+}
+
+// 🆕 根据业务代码或姓名查找邮箱
+function getSalesEmail(identifier) {
+  if (!identifier || !salesConfig) return null;
+  
+  let sales = salesConfig.find(s => s.code === identifier);
+  
+
+  if (!sales) {
+    sales = salesConfig.find(s => s.name === identifier);
+  }
+  
+  if (sales) {
+    console.log(`✅ 對應業務人員: ${sales.name} (${sales.code}) - ${sales.email}`);
+    return sales;  
+  }
+  
+  console.log(`⚠️ 業務人員異常: ${identifier}`);
+  return null;
+}
 
 // ⭐⭐⭐ 新增：複製行格式的輔助函數 ⭐⭐⭐
 function copyRowStyle(worksheet, sourceRow, targetRow, startCol, endCol) {
@@ -38,7 +108,7 @@ function copyRowStyle(worksheet, sourceRow, targetRow, startCol, endCol) {
     const sourceCell = worksheet.getRow(sourceRow).getCell(col);
     const targetCell = worksheet.getRow(targetRow).getCell(col);
     
-    // 複製樣式（邊框、字體、對齊、填充等）
+   
     if (sourceCell.style) {
       targetCell.style = {
         font: sourceCell.font ? { ...sourceCell.font } : undefined,
@@ -269,7 +339,7 @@ app.get('/api/orders/:orderId/export', async (req, res) => {
           if (!row.sampleName) return;
 
           if (idx === 0) {
-            // 用模板行
+            // 用模板
           } else {
             const targetRow = currentRow + 1;
             insertRowWithStyle(sheet3, sampleSheetTemplateRow, targetRow, 1, 9);
@@ -297,52 +367,64 @@ app.get('/api/orders/:orderId/export', async (req, res) => {
       //   #if (config.phiX) sheet3.getCell('C27').value = config.phiX;
       // }
       
-      // ⭐⭐⭐ Library Sample Sheet（第二個表格）⭐⭐⭐
-      if (orderData.libraryInfo && orderData.libraryInfo.librarySampleSheet) {
-        let librarySampleSheetTemplateRow = null;        
-        
-        sheet3.eachRow((row, rowNumber) => {
-          const cellValue = row.getCell(1).value; // A 欄 = column 1
-          if (cellValue && cellValue.toString().includes('5. Library Sample Sheet')) {
-            librarySampleSheetTemplateRow = rowNumber + 4; // 找到後往下 4 行
-            return false; // 找到就停止搜尋
-          }
-        });
-        
-        // 如果沒找到，使用預設值 40
-        if (!librarySampleSheetTemplateRow) {
-          console.warn('⚠️ 未找到 "5. Library Sample Sheet" 標題，使用預設行號 40');
-          librarySampleSheetTemplateRow = 40;
-        }
+// ⭐⭐⭐ Library Sample Sheet（第二個表格）⭐⭐⭐
+if (orderData.libraryInfo && orderData.libraryInfo.librarySampleSheet) {
+  let librarySampleSheetTemplateRow = null;        
+  
+  sheet3.eachRow((row, rowNumber) => {
+    const cellValue = row.getCell(1).value;
+    if (cellValue && cellValue.toString().includes('5. Library Sample Sheet')) {
+      librarySampleSheetTemplateRow = rowNumber + 4;
+      return false;
+    }
+  });
+  
+  if (!librarySampleSheetTemplateRow) {
+    console.warn('⚠️ 未找到 "5. Library Sample Sheet" 標題，使用預設行號 40');
+    librarySampleSheetTemplateRow = 40;
+  }
 
-        // 🆕 使用插入 + 複製樣式的方式
-        let currentRow = librarySampleSheetTemplateRow;
+  let currentRow = librarySampleSheetTemplateRow;
 
-        orderData.libraryInfo.librarySampleSheet.forEach((row, idx) => {
-          if (!row.sampleName) return;
+  orderData.libraryInfo.librarySampleSheet.forEach((row, idx) => {
+    if (!row.sampleName) return;
 
-          if (idx === 0) {
-            // 第一列：用模板本身
-          } else {
-            const targetRow = currentRow + 1;
-            insertRowWithStyle(sheet3, librarySampleSheetTemplateRow, targetRow, 1, 10);
-            currentRow = targetRow;
-          }
-          
-          sheet3.getCell(`A${currentRow}`).value = idx + 1;
-          sheet3.getCell(`B${currentRow}`).value = row.sampleName;
-          if (row.libraryPrepKit) sheet3.getCell(`C${currentRow}`).value = row.libraryPrepKit;
-          if (row.indexAdapterKit) sheet3.getCell(`E${currentRow}`).value = row.indexAdapterKit;
-          if (row.setWellPosition) sheet3.getCell(`F${currentRow}`).value = row.setWellPosition;
-          if (row.index1Seq) sheet3.getCell(`G${currentRow}`).value = row.index1Seq;
-          if (row.index2Seq) sheet3.getCell(`H${currentRow}`).value = row.index2Seq;
-          if (row.note) sheet3.getCell(`I${currentRow}`).value = row.note;
-          if (row.library) sheet3.getCell(`J${currentRow}`).value = row.library;
-        });
-        
-        console.log(`✅ Library Sample Sheet (第二表) 已寫入 ${orderData.libraryInfo.librarySampleSheet.length} 行`);
-      }
-      
+    if (idx === 0) {
+      // 第一列：用模板本身
+    } else {
+      const targetRow = currentRow + 1;
+      insertRowWithStyle(sheet3, librarySampleSheetTemplateRow, targetRow, 1, 10);  // 🔑 改回 10
+      currentRow = targetRow;
+    }
+    
+    sheet3.getCell(`A${currentRow}`).value = idx + 1;
+    sheet3.getCell(`B${currentRow}`).value = row.sampleName;
+    if (row.libraryPrepKit) sheet3.getCell(`C${currentRow}`).value = row.libraryPrepKit;
+    if (row.indexAdapterKit) sheet3.getCell(`D${currentRow}`).value = row.indexAdapterKit;
+    if (row.setWellPosition) sheet3.getCell(`E${currentRow}`).value = row.setWellPosition;
+    if (row.index1Seq) sheet3.getCell(`F${currentRow}`).value = row.index1Seq;
+    if (row.index2Seq) sheet3.getCell(`G${currentRow}`).value = row.index2Seq;
+    if (row.note) sheet3.getCell(`H${currentRow}`).value = row.note;
+    if (row.library) sheet3.getCell(`I${currentRow}`).value = row.library;
+    
+    
+    console.log(`🔍 第 ${idx + 1} 行:`, {
+      sampleName: row.sampleName,
+      library: row.library,
+      tubeName: row.tubeName,
+      hasTubeName: !!row.tubeName
+    });
+    
+    if (row.tubeName) {
+      sheet3.getCell(`J${currentRow}`).value = row.tubeName;  // 🔑 只写 J 欄
+      console.log(`✅ 已寫入 J${currentRow} = ${row.tubeName}`);
+    } else {
+      console.log(`⚠️ 第 ${idx + 1} 行沒有 tubeName`);
+    }
+  });
+  
+  console.log(`✅ Library Sample Sheet (第二表) 已寫入 ${orderData.libraryInfo.librarySampleSheet.length} 行`);
+}  
     } else if (orderData.sampleType !== '無送樣') {
       const sheet2 = workbook.getWorksheet('Cell Blood DNA RNA');
       
@@ -401,11 +483,198 @@ app.get('/api/orders/:orderId/export', async (req, res) => {
     
     const buffer = await workbook.xlsx.writeBuffer();
     
+    // ============ 發送確認郵件 ============    
+  if (transporter && emailConfig) {
+    try {
+      const emailAddresses = [];
+      
+      // 1. 订单内的客户邮箱
+      if (orderData.email && typeof orderData.email === 'string') {
+        emailAddresses.push(orderData.email);
+        console.log(`📧 客户邮箱: ${orderData.email}`);
+      }
+      
+      if (orderData.recipientEmail && 
+          typeof orderData.recipientEmail === 'string' && 
+          orderData.recipientEmail !== orderData.email) {
+        emailAddresses.push(orderData.recipientEmail);
+        console.log(`📧 收件人邮箱: ${orderData.recipientEmail}`);
+      }
+      
+      // 2. 固定收件人邮箱
+      if (emailConfig.fixedRecipients && Array.isArray(emailConfig.fixedRecipients)) {
+        emailConfig.fixedRecipients.forEach(email => {
+          if (email && typeof email === 'string') {
+            emailAddresses.push(email);
+            console.log(`📧 固定收件人: ${email}`);
+          } else if (email) {
+            console.log(`⚠️ 跳过无效的固定收件人:`, email, typeof email);
+          }
+        });
+      }
+      
+      // 3. 根据业务人员姓名或代码查找邮箱
+      let salesPerson = null;
+      if (orderData.salesPerson) {
+        salesPerson = getSalesEmail(orderData.salesPerson);
+        if (salesPerson && salesPerson.email && typeof salesPerson.email === 'string') {
+          emailAddresses.push(salesPerson.email);
+          console.log(`📧 业务人员: ${salesPerson.name} (${salesPerson.code}) - ${salesPerson.email}`);
+        } else if (salesPerson) {
+          console.log(`⚠️ 业务人员邮箱无效:`, salesPerson);
+        }
+      }
+      
+      // 🔑 调试：显示收集到的所有邮箱（包括类型）
+      console.log(`🔍 收集到的邮箱列表 (共 ${emailAddresses.length} 个):`);
+      emailAddresses.forEach((email, idx) => {
+        console.log(`   [${idx}] ${typeof email}: ${email}`);
+      });
+      
+      // 去重并过滤空值
+      const uniqueEmails = [...new Set(emailAddresses)]
+        .filter(email => {
+          // 确保是字符串类型
+          if (typeof email !== 'string') {
+            console.log(`⚠️ 跳过非字符串邮箱 (${typeof email}):`, email);
+            return false;
+          }
+          // 检查是否为有效邮箱
+          const isValid = email && email.trim() && email.includes('@');
+          if (!isValid) {
+            console.log(`⚠️ 跳过无效邮箱:`, email);
+          }
+          return isValid;
+        });
+      
+      if (uniqueEmails.length > 0) {
+        
+        uniqueEmails.forEach(email => console.log(`   ✉️  ${email}`));
+        
+        const mailOptions = {
+          from: `"${emailConfig.sender.name}" <${emailConfig.sender.email}>`,
+          to: uniqueEmails.join(', '),
+          subject: `TGIA 訂單需求 - ${orderId} - ${orderData.organization || '-'} - ${orderData.principalInvestigator || '-'}`,
+          html: `
+            <div style="font-family: 'Microsoft JhengHei', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              
+              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 24px;">TGIA 訂單確認</h1>
+                <p style="color: #e0e7ff; margin: 10px 0 0 0;">Taiwan Genomics Institute Alliance</p>
+              </div>
+              
+             
+              <div style="background-color: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none;">
+                <p style="color: #374151; font-size: 16px; line-height: 1.6;">您好，</p>
+                
+                <p style="color: #374151; font-size: 16px; line-height: 1.6;">
+                  感謝您的信任！您的服務需求單已成功建立，詳細資訊如下：
+                </p>
+                
+                <!-- 订单信息卡片 -->
+                <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #3b82f6;">
+                  <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                      <td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 120px;">需求編號</td>
+                      <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: bold;">${orderId}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">機構名稱</td>
+                      <td style="padding: 8px 0; color: #111827; font-size: 14px;">${orderData.organization || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">計畫主持人</td>
+                      <td style="padding: 8px 0; color: #111827; font-size: 14px;">${orderData.principalInvestigator || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">聯絡人</td>
+                      <td style="padding: 8px 0; color: #111827; font-size: 14px;">${orderData.contactPerson || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">聯絡電話</td>
+                      <td style="padding: 8px 0; color: #111827; font-size: 14px;">${orderData.contactPhone || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">樣品類型</td>
+                      <td style="padding: 8px 0; color: #111827; font-size: 14px;">${orderData.sampleType || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">送樣數量</td>
+                      <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: bold; color: #3b82f6;">${orderData.sampleCount || 0} 個</td>
+                    </tr>
+                    ${salesPerson ? `
+                    <tr>
+                      <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">業務代表</td>
+                      <td style="padding: 8px 0; color: #111827; font-size: 14px;">${salesPerson.name} (${salesPerson.code})</td>
+                    </tr>
+                    ` : ''}
+                  </table>
+                </div>
+                
+                <!-- 附件提示 -->
+                <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #f59e0b;">
+                  <p style="margin: 0; color: #92400e; font-size: 14px;">
+                    <span style="font-size: 20px; margin-right: 10px;">📎</span>
+                    <strong>訂單詳細資料請參閱附件 Excel 檔案</strong>
+                  </p>
+                </div>
+                
+                <p style="color: #374151; font-size: 16px; line-height: 1.6; margin-top: 25px;">
+                  如有任何問題，歡迎隨時與我們聯繫。
+                </p>
+                
+                ${salesPerson ? `
+                <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin-top: 25px;">
+                  <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 13px;">您的專屬業務代表：</p>
+                  <p style="margin: 0; color: #111827; font-size: 14px;">
+                    <strong>${salesPerson.name}</strong><br>
+                    📧 ${salesPerson.email}<br>
+                    📱 ${salesPerson.phone}
+                  </p>
+                </div>
+                ` : ''}
+              </div>
+              
+              <!-- 页脚 -->
+              <div style="background-color: #f9fafb; padding: 20px; border-radius: 0 0 10px 10px; border: 1px solid #e5e7eb; border-top: none; text-align: center;">
+                <p style="color: #6b7280; font-size: 12px; margin: 0 0 8px 0;">
+                  此為系統自動發送的郵件，請勿直接回覆
+                </p>
+                <p style="color: #9ca3af; font-size: 11px; margin: 0;">
+                  © ${new Date().getFullYear()} Taiwan Genomics Institute Alliance (TGIA)<br>
+                  All rights reserved.
+                </p>
+              </div>
+            </div>
+          `,
+          attachments: [
+            {
+              filename: `TGIA_Order_${orderId}.xlsx`,
+              content: buffer,
+              contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            }
+          ]
+        };
+        
+        await transporter.sendMail(mailOptions);
+        console.log(`✅ 信件成功發送 ${uniqueEmails.length} 位收件人`);
+      } else {
+        console.log('⚠️ 沒有有效信箱');
+      }
+    } catch (emailError) {
+      console.error('❌ 發送失敗:', emailError.message);
+      console.error('   失敗原因:', emailError);
+      // 邮件发送失败不影响下载
+    }
+  } else {
+    console.log('⚠️ 郵件功能異常');
+  }
+    
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=TGIA_Order_${orderId}.xlsx`);
     res.send(buffer);
     
-    console.log(`📥 Excel已匯出（含簽名）: ${orderId}`);
+    console.log(`📥 Excel已匯出: ${orderId}`);
   } catch (error) {
     console.error('❌ 匯出失敗:', error);
     res.status(500).json({ error: error.message });

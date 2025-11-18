@@ -1,0 +1,23 @@
+{
+  "smtp": {
+    "host": "smtp.office365.com",
+    "port": 587,
+    "secure": false,
+    "auth": {
+      "user": "your-email@yourdomain.com",
+      "pass": "your-password"
+    }
+  },
+  "defaultRecipients": {
+    "fixed": "admin@tgia.com",
+    "salesPersons": {
+      "張三": "zhang.san@tgia.com",
+      "李四": "li.si@tgia.com",
+      "王五": "wang.wu@tgia.com"
+    }
+  },
+  "emailTemplate": {
+    "subject": "TGIA 訂單通知 - {orderId}",
+    "body": "親愛的客戶您好，\n\n感謝您的訂購！\n\n訂單編號：{orderId}\n訂購日期：{date}\n客戶PO：{customerPO}\n\n詳細訂單內容請參閱附件。\n\n如有任何問題，請隨時與我們聯繫。\n\n祝好\nTGIA 團隊"
+  }
+}

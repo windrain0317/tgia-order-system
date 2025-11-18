@@ -1,14 +1,20 @@
 {
   "name": "tgia-backend",
   "version": "1.0.0",
-  "main": "server.js",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "start": "node server.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
+    "body-parser": "^2.2.0",
     "cors": "^2.8.5",
-    "body-parser": "^1.20.2",
-    "exceljs": "^4.3.0"
+    "exceljs": "^4.4.0",
+    "express": "^5.1.0",
+    "nodemailer": "^7.0.10",
+    "xlsx": "^0.18.5"
   }
 }

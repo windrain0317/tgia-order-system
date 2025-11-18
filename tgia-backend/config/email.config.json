@@ -1,0 +1,18 @@
+{
+  "smtp": {
+    "host": "smtp.office365.com",
+    "port": 587,
+    "secure": false,
+    "auth": {
+      "user": "biodata@tgiainc.com",
+      "pass": "G)810146953214uk"
+    }
+  },
+  "sender": {
+    "name": "台基盟服務團隊",
+    "email": "biodata@tgiainc.com"
+  },
+  "fixedRecipients": [
+    "windrain0317@gmail.com"
+  ]
+}

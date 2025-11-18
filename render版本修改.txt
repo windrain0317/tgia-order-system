@@ -92,6 +92,6 @@ Publish Directory	build
 Key	Value
 REACT_APP_API_URL	https://tgia-backend-xxxx.onrender.com
 	
-⚠️ 替換成你的實際後端 URL！ 不要有結尾的 /	
+	
 
 
