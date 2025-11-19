@@ -8,19 +8,12 @@ const ExcelJS = require('exceljs');
 const nodemailer = require('nodemailer');
 
 const app = express();
-const PORT = process.env.PORT || 3001;  // ✅ 使用環境變數當作port
+const PORT = 3001;
 
-// ✅ CORS 配置（允許 Render 前端）
-app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    'https://tgia-frontend.onrender.com'  // 前端 URL
-  ],
-  credentials: true
-}));
+app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 
-const ordersDir = path.join(__dirname, 'orders');  // 使用當前目錄
+const ordersDir = path.join(os.homedir(), 'Desktop', 'TGIA_Orders');
 const templatesDir = path.join(__dirname, 'templates');
 const configDir = path.join(__dirname, 'config');  
 
@@ -148,9 +141,16 @@ app.post('/api/orders', (req, res) => {
     const formData = req.body;
     const orderId = `TGIA-${Date.now()}`;
     const orderFile = path.join(ordersDir, `${orderId}.json`);
-    
-    fs.writeFileSync(orderFile, JSON.stringify(formData, null, 2));
-    
+
+    // 🆕 建一個有 emailSent flag 的物件
+    const orderDataToSave = {
+      ...formData,
+      emailSent: false,          
+      createdAt: new Date().toISOString()
+    };
+
+    fs.writeFileSync(orderFile, JSON.stringify(orderDataToSave, null, 2));
+
     console.log(`✅ 訂單已保存: ${orderId}`);
     res.json({ success: true, orderId });
   } catch (error) {
@@ -158,6 +158,7 @@ app.post('/api/orders', (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
 
 app.get('/api/orders/:orderId/export', async (req, res) => {
   try {
@@ -169,7 +170,12 @@ app.get('/api/orders/:orderId/export', async (req, res) => {
     }
     
     const orderData = JSON.parse(fs.readFileSync(orderFile, 'utf-8'));
-    
+
+      // 舊有訂單可能沒有 emailSent，統一補成 false
+  if (typeof orderData.emailSent === 'undefined') {
+    orderData.emailSent = false;
+  }
+
     const templatePath = path.join(templatesDir, 'order_template.xlsx');
     
     if (!fs.existsSync(templatePath)) {
@@ -483,193 +489,199 @@ if (orderData.libraryInfo && orderData.libraryInfo.librarySampleSheet) {
     
     const buffer = await workbook.xlsx.writeBuffer();
     
-    // ============ 發送確認郵件 ============    
-  if (transporter && emailConfig) {
-    try {
-      const emailAddresses = [];
-      
-      // 1. 订单内的客户邮箱
-      if (orderData.email && typeof orderData.email === 'string') {
-        emailAddresses.push(orderData.email);
-        console.log(`📧 客户邮箱: ${orderData.email}`);
-      }
-      
-      if (orderData.recipientEmail && 
-          typeof orderData.recipientEmail === 'string' && 
-          orderData.recipientEmail !== orderData.email) {
-        emailAddresses.push(orderData.recipientEmail);
-        console.log(`📧 收件人邮箱: ${orderData.recipientEmail}`);
-      }
-      
-      // 2. 固定收件人邮箱
-      if (emailConfig.fixedRecipients && Array.isArray(emailConfig.fixedRecipients)) {
-        emailConfig.fixedRecipients.forEach(email => {
-          if (email && typeof email === 'string') {
-            emailAddresses.push(email);
-            console.log(`📧 固定收件人: ${email}`);
-          } else if (email) {
-            console.log(`⚠️ 跳过无效的固定收件人:`, email, typeof email);
-          }
-        });
-      }
-      
-      // 3. 根据业务人员姓名或代码查找邮箱
-      let salesPerson = null;
-      if (orderData.salesPerson) {
-        salesPerson = getSalesEmail(orderData.salesPerson);
-        if (salesPerson && salesPerson.email && typeof salesPerson.email === 'string') {
-          emailAddresses.push(salesPerson.email);
-          console.log(`📧 业务人员: ${salesPerson.name} (${salesPerson.code}) - ${salesPerson.email}`);
-        } else if (salesPerson) {
-          console.log(`⚠️ 业务人员邮箱无效:`, salesPerson);
+    // ============ 發送確認郵件 ============
+    if (!orderData.emailSent) {    
+    if (transporter && emailConfig) {
+      try {
+        const emailAddresses = [];
+        
+        // 1. 订单内的客户邮箱
+        if (orderData.email && typeof orderData.email === 'string') {
+          emailAddresses.push(orderData.email);
+          console.log(`📧 客户邮箱: ${orderData.email}`);
         }
-      }
-      
-      // 🔑 调试：显示收集到的所有邮箱（包括类型）
-      console.log(`🔍 收集到的邮箱列表 (共 ${emailAddresses.length} 个):`);
-      emailAddresses.forEach((email, idx) => {
-        console.log(`   [${idx}] ${typeof email}: ${email}`);
-      });
-      
-      // 去重并过滤空值
-      const uniqueEmails = [...new Set(emailAddresses)]
-        .filter(email => {
-          // 确保是字符串类型
-          if (typeof email !== 'string') {
-            console.log(`⚠️ 跳过非字符串邮箱 (${typeof email}):`, email);
-            return false;
-          }
-          // 检查是否为有效邮箱
-          const isValid = email && email.trim() && email.includes('@');
-          if (!isValid) {
-            console.log(`⚠️ 跳过无效邮箱:`, email);
-          }
-          return isValid;
-        });
-      
-      if (uniqueEmails.length > 0) {
         
-        uniqueEmails.forEach(email => console.log(`   ✉️  ${email}`));
+        if (orderData.recipientEmail && 
+            typeof orderData.recipientEmail === 'string' && 
+            orderData.recipientEmail !== orderData.email) {
+          emailAddresses.push(orderData.recipientEmail);
+          console.log(`📧 收件人邮箱: ${orderData.recipientEmail}`);
+        }
         
-        const mailOptions = {
-          from: `"${emailConfig.sender.name}" <${emailConfig.sender.email}>`,
-          to: uniqueEmails.join(', '),
-          subject: `TGIA 訂單需求 - ${orderId} - ${orderData.organization || '-'} - ${orderData.principalInvestigator || '-'}`,
-          html: `
-            <div style="font-family: 'Microsoft JhengHei', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              
-              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 24px;">TGIA 訂單確認</h1>
-                <p style="color: #e0e7ff; margin: 10px 0 0 0;">Taiwan Genomics Institute Alliance</p>
-              </div>
-              
-             
-              <div style="background-color: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none;">
-                <p style="color: #374151; font-size: 16px; line-height: 1.6;">您好，</p>
-                
-                <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-                  感謝您的信任！您的服務需求單已成功建立，詳細資訊如下：
-                </p>
-                
-                <!-- 订单信息卡片 -->
-                <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #3b82f6;">
-                  <table style="width: 100%; border-collapse: collapse;">
-                    <tr>
-                      <td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 120px;">需求編號</td>
-                      <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: bold;">${orderId}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">機構名稱</td>
-                      <td style="padding: 8px 0; color: #111827; font-size: 14px;">${orderData.organization || '-'}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">計畫主持人</td>
-                      <td style="padding: 8px 0; color: #111827; font-size: 14px;">${orderData.principalInvestigator || '-'}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">聯絡人</td>
-                      <td style="padding: 8px 0; color: #111827; font-size: 14px;">${orderData.contactPerson || '-'}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">聯絡電話</td>
-                      <td style="padding: 8px 0; color: #111827; font-size: 14px;">${orderData.contactPhone || '-'}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">樣品類型</td>
-                      <td style="padding: 8px 0; color: #111827; font-size: 14px;">${orderData.sampleType || '-'}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">送樣數量</td>
-                      <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: bold; color: #3b82f6;">${orderData.sampleCount || 0} 個</td>
-                    </tr>
-                    ${salesPerson ? `
-                    <tr>
-                      <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">業務代表</td>
-                      <td style="padding: 8px 0; color: #111827; font-size: 14px;">${salesPerson.name} (${salesPerson.code})</td>
-                    </tr>
-                    ` : ''}
-                  </table>
-                </div>
-                
-                <!-- 附件提示 -->
-                <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #f59e0b;">
-                  <p style="margin: 0; color: #92400e; font-size: 14px;">
-                    <span style="font-size: 20px; margin-right: 10px;">📎</span>
-                    <strong>訂單詳細資料請參閱附件 Excel 檔案</strong>
-                  </p>
-                </div>
-                
-                <p style="color: #374151; font-size: 16px; line-height: 1.6; margin-top: 25px;">
-                  如有任何問題，歡迎隨時與我們聯繫。
-                </p>
-                
-                ${salesPerson ? `
-                <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin-top: 25px;">
-                  <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 13px;">您的專屬業務代表：</p>
-                  <p style="margin: 0; color: #111827; font-size: 14px;">
-                    <strong>${salesPerson.name}</strong><br>
-                    📧 ${salesPerson.email}<br>
-                    📱 ${salesPerson.phone}
-                  </p>
-                </div>
-                ` : ''}
-              </div>
-              
-              <!-- 页脚 -->
-              <div style="background-color: #f9fafb; padding: 20px; border-radius: 0 0 10px 10px; border: 1px solid #e5e7eb; border-top: none; text-align: center;">
-                <p style="color: #6b7280; font-size: 12px; margin: 0 0 8px 0;">
-                  此為系統自動發送的郵件，請勿直接回覆
-                </p>
-                <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-                  © ${new Date().getFullYear()} Taiwan Genomics Institute Alliance (TGIA)<br>
-                  All rights reserved.
-                </p>
-              </div>
-            </div>
-          `,
-          attachments: [
-            {
-              filename: `TGIA_Order_${orderId}.xlsx`,
-              content: buffer,
-              contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        // 2. 固定收件人邮箱
+        if (emailConfig.fixedRecipients && Array.isArray(emailConfig.fixedRecipients)) {
+          emailConfig.fixedRecipients.forEach(email => {
+            if (email && typeof email === 'string') {
+              emailAddresses.push(email);
+              console.log(`📧 固定收件人: ${email}`);
+            } else if (email) {
+              console.log(`⚠️ 跳过无效的固定收件人:`, email, typeof email);
             }
-          ]
-        };
+          });
+        }
         
-        await transporter.sendMail(mailOptions);
-        console.log(`✅ 信件成功發送 ${uniqueEmails.length} 位收件人`);
-      } else {
-        console.log('⚠️ 沒有有效信箱');
+        // 3. 根据业务人员姓名或代码查找邮箱
+        let salesPerson = null;
+        if (orderData.salesPerson) {
+          salesPerson = getSalesEmail(orderData.salesPerson);
+          if (salesPerson && salesPerson.email && typeof salesPerson.email === 'string') {
+            emailAddresses.push(salesPerson.email);
+            console.log(`📧 業務: ${salesPerson.name} (${salesPerson.code}) - ${salesPerson.email}`);
+          } else if (salesPerson) {
+            console.log(`⚠️ 业务人员邮箱无效:`, salesPerson);
+          }
+        }
+        
+        // 🔑 測試 => 確認所有的mails
+        console.log(`🔍 Mail List (共 ${emailAddresses.length} 个):`);
+        emailAddresses.forEach((email, idx) => {
+          console.log(`   [${idx}] ${typeof email}: ${email}`);
+        });
+        
+        // 取Unique Maile
+        const uniqueEmails = [...new Set(emailAddresses)]
+          .filter(email => {
+            // 确保是字符串类型
+            if (typeof email !== 'string') {
+              console.log(`⚠️ Email 格式確認 (${typeof email}):`, email);
+              return false;
+            }
+            // 检查是否为有效邮箱
+            const isValid = email && email.trim() && email.includes('@');
+            if (!isValid) {
+              console.log(`⚠️ 跳过无效邮箱:`, email);
+            }
+            return isValid;
+          });
+        
+        if (uniqueEmails.length > 0) {
+          
+          uniqueEmails.forEach(email => console.log(`   ✉️  ${email}`));
+          
+          const mailOptions = {
+            from: `"${emailConfig.sender.name}" <${emailConfig.sender.email}>`,
+            to: uniqueEmails.join(', '),
+            subject: `TGIA 訂單需求 - ${orderId} - ${orderData.organization || '-'} - ${orderData.principalInvestigator || '-'}`,
+            html: `
+              <div style="font-family: 'Microsoft JhengHei', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+                  <h1 style="color: white; margin: 0; font-size: 24px;">TGIA 訂購需求確認</h1>
+                  <p style="color: #e0e7ff; margin: 10px 0 0 0;">Taiwan Genomics Institute Alliance</p>
+                </div>
+                
+              
+                <div style="background-color: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none;">
+                  <p style="color: #374151; font-size: 16px; line-height: 1.6;">您好，</p>
+                  
+                  <p style="color: #374151; font-size: 16px; line-height: 1.6;">
+                    感謝您的信任！您的服務需求單已成功建立，詳細資訊如下：
+                  </p>
+                  
+                  <!-- 订单信息卡片 -->
+                  <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #3b82f6;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 120px;">需求編號</td>
+                        <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: bold;">${orderId}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">機構名稱</td>
+                        <td style="padding: 8px 0; color: #111827; font-size: 14px;">${orderData.organization || '-'}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">計畫主持人</td>
+                        <td style="padding: 8px 0; color: #111827; font-size: 14px;">${orderData.principalInvestigator || '-'}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">聯絡人</td>
+                        <td style="padding: 8px 0; color: #111827; font-size: 14px;">${orderData.contactPerson || '-'}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">聯絡電話</td>
+                        <td style="padding: 8px 0; color: #111827; font-size: 14px;">${orderData.contactPhone || '-'}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">樣品類型</td>
+                        <td style="padding: 8px 0; color: #111827; font-size: 14px;">${orderData.sampleType || '-'}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">送樣數量</td>
+                        <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: bold; color: #3b82f6;">${orderData.sampleCount || 0} </td>
+                      </tr>
+                      ${salesPerson ? `
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">業務代表</td>
+                        <td style="padding: 8px 0; color: #111827; font-size: 14px;">${salesPerson.name} (${salesPerson.code})</td>
+                      </tr>
+                      ` : ''}
+                    </table>
+                  </div>
+                  
+                  <!-- 附件提示 -->
+                  <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #f59e0b;">
+                    <p style="margin: 0; color: #92400e; font-size: 14px;">
+                      <span style="font-size: 20px; margin-right: 10px;">📎</span>
+                      <strong>訂單詳細資料請參閱附件 Excel 檔案</strong>
+                    </p>
+                  </div>
+                  
+                  <p style="color: #374151; font-size: 16px; line-height: 1.6; margin-top: 25px;">
+                    如有任何問題，歡迎隨時與我們聯繫。
+                  </p>
+                  
+                  ${salesPerson ? `
+                  <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin-top: 25px;">
+                    <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 13px;">您的專屬業務代表：</p>
+                    <p style="margin: 0; color: #111827; font-size: 14px;">
+                      <strong>${salesPerson.name}</strong><br>
+                      📧 ${salesPerson.email}<br>
+                      📱 ${salesPerson.phone}
+                    </p>
+                  </div>
+                  ` : ''}
+                </div>
+                
+                <!-- 页脚 -->
+                <div style="background-color: #f9fafb; padding: 20px; border-radius: 0 0 10px 10px; border: 1px solid #e5e7eb; border-top: none; text-align: center;">
+                  <p style="color: #6b7280; font-size: 12px; margin: 0 0 8px 0;">
+                    此為系統自動發送的郵件，請勿直接回覆
+                  </p>
+                  <p style="color: #9ca3af; font-size: 11px; margin: 0;">
+                    © ${new Date().getFullYear()} Taiwan Genomics Institute Alliance (TGIA)<br>
+                    All rights reserved.
+                  </p>
+                </div>
+              </div>
+            `,
+            attachments: [
+              {
+                filename: `TGIA_Order_${orderId}.xlsx`,
+                content: buffer,
+                contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+              }
+            ]
+          };
+          
+          await transporter.sendMail(mailOptions);
+          console.log(`✅ 信件成功發送 ${uniqueEmails.length} 位收件人`);
+          orderData.emailSent = true;
+          fs.writeFileSync(orderFile, JSON.stringify(orderData, null, 2));
+          console.log(`✅ 已更新 emailSent 標記為 true (${orderId})`);          
+        } else {
+          console.log('⚠️ 沒有有效信箱');
+        }
+      } catch (emailError) {
+        console.error('❌ 發送失敗:', emailError.message);
+        console.error('   失敗原因:', emailError);
+        
       }
-    } catch (emailError) {
-      console.error('❌ 發送失敗:', emailError.message);
-      console.error('   失敗原因:', emailError);
-      // 邮件发送失败不影响下载
+    } else {
+      console.log('⚠️ 郵件功能異常');
     }
-  } else {
-    console.log('⚠️ 郵件功能異常');
-  }
-    
+} else {
+  console.log(`⚠️ 訂單 ${orderId} 已經寄過信，這次只提供 Excel 下載，不再重寄`);
+}    
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=TGIA_Order_${orderId}.xlsx`);
     res.send(buffer);

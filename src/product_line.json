@@ -190,10 +190,7 @@
     { "value": "L-WG03 WGS - Roche, KAPA EvoPrep 建庫", "description": "KAPA EvoPrep 酶促建庫，適合降解或 FFPE DNA" },
     { "value": "L-WG04 WGBS - IDT, xGen Methyl-Seq Library Prep 建庫", "description": "全基因體甲基化定序建庫，含 bisulfite 轉換" },
     { "value": "L-TS01 TSO500 - Illumina, TSO500 HT 建庫", "description": "TruSight Oncology 500 High-Throughput，腫瘤 523 基因 panel" },
-    { "value": "L-TS02 內部使用 - Illumina, TSO500 HT plus Velsera", "description": "TSO500 + Velsera 分析平台（內部使用）" },
     { "value": "L-TS03 TSO500 - Illumina, TSO500 ctDNA v2 建庫", "description": "TSO500 ctDNA v2，循環腫瘤 DNA 檢測" },
-    { "value": "L-TS04 內部使用 - Illumina, TSO500 ctDNA v2 plus Velsera", "description": "TSO500 ctDNA + Velsera（內部使用）" },
-    { "value": "L-DN01 內部使用 - IDT, xGen ssDNA & Low-Input DNA Library Prep 建庫", "description": "單股 DNA 或低量 DNA 建庫（內部使用）" },
     { "value": "L-RN01 RNAseq - Illumina, Illumina Stranded mRNA 建庫", "description": "polyA 富集 mRNA 定序，保留鏈方向資訊" },
     { "value": "L-RN02 RNAseq - Illumina, Illumina Stranded Total RNA Prep, Ligation with Ribo-Zero Plus 建庫", "description": "Total RNA 去除 rRNA，含非編碼 RNA" },
     { "value": "L-RN03 RNAseq - Illumina, Illumina RNA Prep with Enrichment 建庫", "description": "RNA 建庫含富集功能，可搭配 panel" },
@@ -215,45 +212,52 @@
     { "value": "L-OS05 10x - Visium HD, Human Transcriptome, 6.5 mm", "description": "10x Visium HD 空間轉錄體，人類，6.5mm 捕獲區" }
   ],
   "分析服務 (A)": [
-    { "value": "A100 1st - BCL", "description": "定序儀下機原始資料(BCL)" },
-    { "value": "A101 1st - Fastq", "description": "FASTQ檔案"},
-    { "value": "A102 1st - UMI Tagged FASTQ", "description": "產出 Fastq 原始檔案" },
-    { "value": "A201 2nd - DRAGEN-Germline", "description": "DRAGEN 加速運算平台，體細胞變異分析" },
-    { "value": "A202 2nd - DRAGEN-Somatic", "description": "DRAGEN 加速運算平台，體細胞突變分析" },
-    { "value": "A203 2nd - RNAseq-Basic", "description": "基礎 RNA-seq 分析。產出 QC 報表、序列比對結果與量化結果（TPM/FPKM）。詳細交付結果可以參閱「RNAseq 範例報告」。" },
-    { "value": "A204 2nd - RNAseq-Advanced", "description": "進階 RNA-seq 分析。產出 QC 報表、序列比對結果與量化結果（TPM/FPKM）以外，會進行 R 分析與視覺化，包含差異表達分析、ORA（GO/KEGG）分析、GSEA（GO/KEGG）分析，與 PPI 分析。最終產出 HTML 報告方便客戶閱讀。詳細交付結果可以參閱「RNAseq 範例報告」。" },
-    { "value": "A251 2nd - RNAseq-Basic-Customized", "description": "客製化 RNA-seq 分析：RNAseq-Basic pipeline 加上客製化處理（支援可執行的非模式物種，也可進行更彈性化的 R 分析來找出差異表達基因，包含「子集分析」、「雙軌分析」、「Pairwise 多重比較法」，與「多時序分析（LRT）」。此外也支援圖片修改與富集分析的「自定義資料集」。詳細交付結果可以參閱「RNAseq 範例報告」。）" },
-    { "value": "A252 2nd - RNAseq-Advanced-Customized", "description": "客製化 RNA-seq 分析：RNAseq-Advanced pipeline 加上客製化處理（支援可執行的非模式物種，也可進行更彈性化的 R 分析來找出差異表達基因，包含「子集分析」、「雙軌分析」、「Pairwise 多重比較法」，與「多時序分析（LRT）」。此外也支援圖片修改與富集分析的「自定義資料集」。詳細交付結果可以參閱「RNAseq 範例報告」。）" },
-    { "value": "A206 2nd - TSO500-Tissue", "description": "TSO500 組織樣本分析，" },
-    { "value": "A207 2nd - TSO500-ctDNA", "description": "TSO500 ctDNA 樣本分析，" },
-    { "value": "A208 2nd - miRNA", "description": "miRNA 定序分析：比對、定量、目標基因預測" },
-    { "value": "A209 2nd - ChIPseq", "description": "ChIP-Seq 分析：peak calling、motif 分析" },
-    { "value": "A210 2nd - CellRanger", "description": "10x Genomics Cell Ranger 標準分析" },
-    { "value": "A211 2nd - SpaceRanger", "description": "10x Visium Space Ranger 空間分析" },
-    { "value": "A212 2nd - scRNAseq-Standard", "description": "單細胞 RNA-Seq 標準分析" },
-    { "value": "A213 2nd - CeleScope", "description": "CeleScope 單細胞分析平台" },
-    { "value": "A214 2nd - PacBio-16S", "description": "PacBio 16S 微生物群落分析" },
-    { "value": "A215 2nd - PacBio-HumanWGS", "description": "PacBio 人類全基因體分析" },
-    { "value": "A216 2nd - Transcriptome-de-novo", "description": "轉錄體從頭組裝分析" },
-    { "value": "A217 2nd - ServiceHour", "description": "客製化分析服務（以小時計費）" },
-    { "value": "A302 3rd - Geneyx-Report", "description": "Geneyx 變異解讀報告" },
-    { "value": "A303 3rd - Geneyx-Report&Annotation-Germline", "description": "Geneyx 報告 + 體細胞變異註解" },
-    { "value": "A304 3rd - Geneyx-Account", "description": "Geneyx 平台使用帳號" },
-    { "value": "A305 3rd - Annotation-Germline", "description": "體細胞變異註解" },
-    { "value": "A306 3rd - Annotation-Germline&JointCalling", "description": "體細胞變異註解 + Joint Calling" },
-    { "value": "A307 3rd - Annotation-Somatic", "description": "體細胞突變註解" },
-    { "value": "A308 3rd - Annotation-Somatic-PCGR", "description": "體細胞突變 PCGR 註解（癌症相關）" },
-    { "value": "A309 3rd - Annotation-Somatic-PCGR-maftools", "description": "PCGR + maftools 進階癌症註解" },
-    { "value": "A310 3rd - OGM-Geneyx-Report", "description": "OGM (光學基因體圖譜) Geneyx 報告" },
-    { "value": "A311 3rd - OGM-Geneyx-Account", "description": "OGM Geneyx 平台使用帳號" },
-    { "value": "A312 3rd - ICI-Report", "description": "ICI (免疫檢查點抑制劑) 療效預測報告" },
-    { "value": "A313 3rd - ICI-Account", "description": "ICI 分析平台使用帳號" },
-    { "value": "A314 3rd - MagicBison", "description": "MagicBison 整合分析平台" },
-    { "value": "A315 3rd - SangerReport", "description": "Sanger 定序分析報告" },
-    { "value": "A316 3rd - HLAtyping", "description": "HLA 分型分析" }
+    { "value": "A101 1st - BCL", "description": "定序儀下機原始資料(BCL)" },
+    { "value": "A103 1st - UMI Tagged FASTQ", "description": "產出 Fastq 原始檔案" },
+
+    { "value": "A201 2nd - DRAGEN-Germline", "description": "Illumina DRAGEN 二級分析，產出Variant Calling Files(vcf)。計量單位為分析資料大小(GBase)" },
+    { "value": "A202 2nd - DRAGEN-Somatic", "description": "Illumina DRAGEN 二級分析 (體突變，常見包含cfDNA/Tumor Tissue)，產出Variant Calling Files(vcf)。計量單位為分析資料大小(GBase)" },
+    { "value": "A203 2nd - DRAGEN-Somatic-Tumor-Normal", "description": "Illumina DRAGEN 二級分析 (體突變，常見檢體為Tumor Tissue/PBMC/Nnormal Tissue)，產出Variant Calling Files(vcf)。計量單位為分析資料大小(GBase)" },
+    { "value": "A204 2nd - RNAseq-Basic", "description": "基礎 RNA-seq 分析。產出 QC 報表、序列比對結果與量化結果（TPM/FPKM）。詳細交付結果可以參閱「RNAseq 範例報告」。" },
+    { "value": "A205 2nd - RNAseq-Advanced", "description": "進階 RNA-seq 分析。產出 QC 報表、序列比對結果與量化結果（TPM/FPKM）以外，會進行 R 分析與視覺化，包含差異表達分析、ORA（GO/KEGG）分析、GSEA（GO/KEGG）分析，與 PPI 分析。最終產出 HTML 報告方便客戶閱讀。詳細交付結果可以參閱「RNAseq 範例報告」。" },
+    { "value": "A206 2nd - RNAseq-Customized_1", "description": "客製化 RNA-seq 分析：RNAseq-Basic pipeline 加上客製化處理（支援可執行的非模式物種，也可進行更彈性化的 R 分析來找出差異表達基因，包含「子集分析」、「雙軌分析」、「Pairwise 多重比較法」，與「多時序分析（LRT）」。此外也支援圖片修改與富集分析的「自定義資料集」。詳細交付結果可以參閱「RNAseq 範例報告」。）" },
+    { "value": "A207 2nd - RNAseq-Customized_2", "description": "客製化 RNA-seq 分析：RNAseq-Advanced pipeline 加上客製化處理（支援可執行的非模式物種，也可進行更彈性化的 R 分析來找出差異表達基因，包含「子集分析」、「雙軌分析」、「Pairwise 多重比較法」，與「多時序分析（LRT）」。此外也支援圖片修改與富集分析的「自定義資料集」。詳細交付結果可以參閱「RNAseq 範例報告」。）" },    { "value": "A208 2nd - TSO500-Tissue", "description": "基於Illumnina Dragen TSO500 pipeline 進行分析，產生CombinedVariant結果(含Nirvana註解)，計量單位為樣本數。" },
+    { "value": "A209 2nd - TSO500-ctDNA", "description": "基於Illumnina Dragen TSO500 ctDNA pipeline 進行分析，產生CombinedVariant結果(含Nirvana註解)，計量單位為樣本數。" },
+    { "value": "A210 2nd - miRNA Expression Profiling", "description": "miRNA 表現量分析 (miRBase relese 22,2020)，產出miRNA Expression (RPM/Reads Counts）。計量單位為分析資料大小(GBase)，計量單位為樣本數。" },
+    { "value": "A211 2nd - ChIPseq-ATACseq", "description": "分析內容包含 Peak calling 以及peak註解 (建議配合input樣本)，計量單位為樣本數。" },
+    { "value": "A212 2nd - scRNAseq-10X_Basic", "description": "基礎 CellRanger 分析：處理 10X Genomics 平台所製備文庫所定序的結果。CellRanger 是官方分析軟體，將原始序列讀段轉成「每個細胞的基因 × 細胞計數」矩陣，並產出 QC 報表與簡單的三級分析結果。結果可用於第三方軟體的下游分析（Seurat/Scanpy），或是在官方 Loupe Browser 中分析與視覺化。" },
+    { "value": "A213 2nd - scRNAseq-10X_Standard", "description": "標準單細胞 RNA-Seq 分析：經過 CellRanger 處理後，使用第三方軟體 CellBender 去除 ambient RNA，並生成去除背景後的差異圖。將結果輸入 Seurat 進行 QC、標準化，把「細胞週期」或「線粒體比例」等不想見的變異從模型強製 regress out，消除 batch effect，與 SingleR 細胞註解後生成 HTML 報告方便客戶閱讀，最後會進行富集分析。" },
+    { "value": "A214 2nd - scRNAseq-10X_Customized_1", "description": "客製化單細胞 RNA-Seq 分析：scRNAseq-10X_Basic pipeline 加上客製化處理（支援可執行的非模式物種、圖片修改、資料庫修改。）" },
+    { "value": "A215 2nd - scRNAseq-10X_Customized_2", "description": "客製化單細胞 RNA-Seq 分析：scRNAseq-10X_Standard pipeline 加上客製化處理（支援可執行的非模式物種、圖片修改、資料庫修改。）" },
+    { "value": "A217 2nd - scRNAseq-CeleScope_Basic", "description": "基礎 CeleScope 分析：處理 Singleron 平台所製備文庫所定序的結果。CeleScope 是官方分析軟體，針對 Singleron GEXSCOPE®/SCOPE® 產生單細胞資料所開發，產出 QC 報表並輸出的「基因 × 細胞計數」矩陣。結果可供第三方軟體（Seurat/Scanpy）做下游分析。" },
+    { "value": "A218 2nd - scRNAseq-CeleScope_Standard", "description": "標準 CeleScope 分析：CeleScope 分析後，使用第三方軟體 CellBender 去除 ambient RNA。" },
+    { "value": "A219 2nd - scRNAseq-CeleScope_Customized_1", "description": "客製化 CeleScope 分析：scRNAseq-CeleScope_Basic pipeline 加上客製化處理（支援可執行的非模式物種、圖片修改、資料庫修改。）" },
+    { "value": "A220 2nd - scRNAseq-CeleScope_Customized_2", "description": "客製化 CeleScope 分析：scRNAseq-CeleScope_Standard pipeline 加上客製化處理（支援可執行的非模式物種、圖片修改、資料庫修改。）" },
+    { "value": "A221 2nd - Spatial-10X_Basic", "description": "基礎 SpaceRanger 分析：SpaceRanger 是標準官方空間轉錄體分析軟體，用顯微影像對位 Visium/VisiumHD 的空間條碼，輸出「位置 × 基因」的計數矩陣、QC 報表與簡單的三級分析結果，方便直接進入第三方軟體如下游分析 (Seurat/Scanpy)，或是在官方 Loupe Browser 中分析與視覺化。如果有 Brightfield 高解析顯微影像 (H&E)，我們會手動 alignment 後輸出高畫質的結果。" },
+    { "value": "A222 2nd - Spatial-10X_Customized", "description": "客製化 SpaceRanger 分析：Spatial-10X_Basic pipeline 加上客製化處理。" },
+    { "value": "A223 2nd - PacBio-16S", "description": "PacBio-16S分析 (樣本數)" },
+    { "value": "A224 2nd - PacBio-HumanWGS", "description": "PacBio-HumanWGS分析 (樣本數)" },
+    { "value": "A225 2nd - Transcriptome-de-novo", "description": "Transcriptome-de novo分析 (樣本數)" },
+    { "value": "A226 2nd - ServiceHour", "description": "客製分析" },
+    { "value": "A227 2nd - Shotgun metagenomics", "description": "Shotgun metagenomics (樣本數)" },
+    { "value": "A301 3rd - Geneyx-Account-Report", "description": "上傳至Geneyx分析並產出報告 (樣本數)" },
+    { "value": "A302 3rd - Geneyx-Account-健檢Report", "description": "上傳至Geneyx分析並產出健檢報告 (樣本數)" },
+    { "value": "A303 3rd - Geneyx-Account", "description": "上傳至Geneyx分析但是不產出報告 (樣本數)" },
+    { "value": "A304 3rd - Annotation-Germline", "description": "三級註解分析(germline) (樣本數)" },
+    { "value": "A305 3rd - JointCalling", "description": "合併VCF分析 (限檢體數大於等於2) (樣本數)" },
+    { "value": "A306 3rd - Annotation-Somatic", "description": "三級註解分析(somatic) (樣本數)" },
+    { "value": "A307 3rd - PCGR", "description": "限Somatic變異產出PCGR報告，須提供癌別 (樣本數)" },
+    { "value": "A308 3rd - maftools", "description": "限Somatic變異進行maftools分析，限檢體數大於等於20以上 (樣本數)" },
+    { "value": "A309 3rd - OGM-Geneyx-Account-Report", "description": "OGM產出的VCF上傳至Geneyx並產出報告 (樣本數)" },
+    { "value": "A310 3rd - OGM-Geneyx-Account", "description": "OGM產出的VCF上傳至Geneyx不出報告 (樣本數)" },
+    { "value": "A311 3rd - ICI-Account-Report", "description": "VCF上傳至ICI並產出報告 (樣本數)" },
+    { "value": "A312 3rd - ICI-Account", "description": "VCF上傳至ICI不出報告 (樣本數)" },
+    { "value": "A313 3rd - MagicBison", "description": "使用MagicBison分析並產出報告 (樣本數)" },
+    { "value": "A314 3rd - SangerReport", "description": "產出Sanger報告 (樣本數)" },
+    { "value": "A315 3rd - HLAtyping", "description": "HLA分析(非使用DRAGEN進行分析) (樣本數)" }
   ],
   "套組產品 (AP)": [
-    { "value": "台基安WGS", 
+    { "value": "AP01 - 台基安 WGS", 
       "description": "台積安WGS服務內容包含：\n1) DNA萃取+QC\n2) Illumina, Illumina DNA PCR-Free Prep 建庫\n3) 二代定序 (90GB)\n4) Dragen Germline分析\n5) Geneyx 臨床報告  ",
       "binding": {
         "sampleType":  ["DNA", "Blood"],  
@@ -269,8 +273,8 @@
         }             
       }
     },
-    { "value": "台基安WGS2", 
-      "description": "台積安WGS服務內容包含：\n1) DNA萃取+QC\n2) Illumina, Illumina DNA PCR-Free Prep 建庫\n3) 二代定序 (120B)\n4) Dragen Germline分析\n5)變異註解\\n6) Geneyx 臨床報告  ",
+    { "value": "AP02 - 台基安 WGS (120GB)", 
+      "description": "台積安WGS服務內容包含：\n1) DNA萃取+QC\n2) Illumina, Illumina DNA PCR-Free Prep 建庫\n3) 二代定序 (120GB)\n4) Dragen Germline分析\n5)變異註解\\n6) Geneyx 臨床報告  ",
       "binding": {
         "sampleType":  ["DNA", "Blood"],  
         "seqAmountGb": 120,
@@ -285,8 +289,8 @@
         }             
       }
     },    
-    { "value": "台基安WES", 
-      "description": "台積安WGS服務內容包含：\n1) DNA萃取+QC\n2) Roche, KAPA HyperPlus V1 + mit 建庫\n3) 二代定序 (9GB)\n4) Dragen Germline分析\n5) Geneyx 臨床報告  ",
+    { "value": "AP03 - 台基安WES", 
+      "description": "台積安WGS服務內容包含：\n1) DNA萃取+QC\n2) Roche, KAPA HyperPlus V1 + mitocondria 建庫\n3) 二代定序 (9GB)\n4) Dragen Germline分析\n5) Geneyx 臨床報告  ",
       "binding": {
         "sampleType": ["DNA", "Blood"],  
         "seqAmountGb": 9,
@@ -302,20 +306,38 @@
              
       }
     },
-    { "value": "Bulk RNA-Seq Expression Profiling(含萃取)", 
-      "description": "Bulk RNA-Seq Expression Profiling 內容包含：\n1) RNA萃取+QC\n2) Illumina, Illumina Stranded mRNA 建庫\n3) 二代定序 (6GB,20M Reads per sample)\n4) 進階 RNA-seq 分析\n 標準分析物種 (Human/Mus musculus/Rat/Zebrafish/Drosophilla) ",
+    { "value": "AP04 - 台基安WES (10GB)", 
+      "description": "台積安WGS服務內容包含：\n1) DNA萃取+QC\n2) Roche, KAPA HyperPlus V1 + mitocondria 建庫\n3) 二代定序 (10GB)\n4) Dragen Germline分析\n5) Geneyx 臨床報告  ",
       "binding": {
-        "sampleType": ["RNA", "Tissue"],    
-        "seqAmountGb": 6,
+        "sampleType": ["DNA", "Blood"],  
+        "seqAmountGb": 10,
         "preservationMethod": {
-          "allowed": ["Trizol", "Tempus Tube(Blood)"],  
-          "default": "Trizol"
+          "allowed": ["EDTA Tube(Blood)","Nuclease-free H2O","Tris Buffer"],  
+          "default": "EDTA Tube(Blood)" 
         },
-        "species": null,  
+        "species": "Human",
         "shippingMethod": {
-          "allowed": ["冷凍(乾冰)"], 
-          "default": "冷凍(乾冰)"
-        }   
+          "allowed": ["冷凍(乾冰)", "冷藏"],
+          "default": "冷藏"
+        }
+             
+      }
+    },
+
+      { "value": "AP05 - Bulk RNA-Seq Expression Profiling( 20M, 含萃取)", 
+        "description": "Bulk RNA-Seq Expression Profiling 內容包含：\n1) RNA萃取+QC\n2) Illumina, Illumina Stranded mRNA 建庫\n3) 二代定序 (6GB,20M Reads per sample)\n4) 進階 RNA-seq 分析\n 標準分析物種 (Human/Mus musculus/Rat/Zebrafish/Drosophilla) ",
+        "binding": {
+          "sampleType": ["RNA", "Tissue"],    
+          "seqAmountGb": 6,
+          "preservationMethod": {
+            "allowed": ["Trizol", "Tempus Tube(Blood)"],  
+            "default": "Trizol"
+          },
+          "species": null,  
+          "shippingMethod": {
+            "allowed": ["冷凍(乾冰)"], 
+            "default": "冷凍(乾冰)"
+          }   
       }
     }
   ]
