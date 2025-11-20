@@ -13,7 +13,7 @@ const PORT = 3001;
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 
-const ordersDir = path.join(os.homedir(), 'Desktop', 'TGIA_Orders');
+const ordersDir = path.join(__dirname, 'orders');  // 使用當前目錄;
 const templatesDir = path.join(__dirname, 'templates');
 const configDir = path.join(__dirname, 'config');  
 
