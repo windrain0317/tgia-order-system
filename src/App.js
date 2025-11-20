@@ -2620,7 +2620,7 @@ const removeSampleSheetRow = (index) => {
     }
     
     try {
-      const response = await fetch('http://192.168.60.62:3001/api/orders', {
+      const response = await fetch('https://tgia-backend.onrender.com/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2654,7 +2654,7 @@ const removeSampleSheetRow = (index) => {
     }
     
     try {
-      const response = await fetch(`http://192.168.60.62:3001/api/orders/${orderId}/export`);
+      const response = await fetch(`https://tgia-backend.onrender.com/api/orders/${orderId}/export`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
